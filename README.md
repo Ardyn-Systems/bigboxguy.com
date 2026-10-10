@@ -39,9 +39,26 @@ without the function; those two features just hide themselves.
   pity rules keep the common drops flowing (a peanut by Box 7, never more
   than 25 boxes without something).
 
-- **Milestones.** Box 100 issues a downloadable "Certified Big Box Guy"
-  certificate from the Association of Guys who love Box, signed by Justin Box.
-  Box 1,000 runs out of boxes. Box 10,000 rolls credits. Nobody is credited.
+- **Certificates.** Issued by the Association of Guys who love Box, signed by
+  Justin Box, downloadable as PNG. The wording escalates with the tier:
+
+  | Box       | Certificate                  |
+  |-----------|------------------------------|
+  | 100       | Certified Big Box Guy        |
+  | 500       | Distinguished Big Box Guy    |
+  | 1,000     | Master Big Box Guy           |
+  | 2,500     | Grand Master of Box          |
+  | 10,000    | Legendary Big Box Guy        |
+  | 25,000    | Box Emeritus                 |
+  | 50,000    | Patron Saint of Box          |
+  | 100,000   | Big Box Guy of the Century   |
+  | 1,000,000 | The Box                      |
+
+  Tiers live in `js/cert.js` (`CERT_TIERS`). Titles, names and body text
+  shrink or wrap to fit, so a new tier only needs its wording. Earned
+  certificates are listed in the menu (☰).
+- **Milestones.** Box 1,000 runs out of boxes. Box 10,000 rolls credits.
+  Nobody is credited.
 - **Interaction gags.** Shake the mouse (or your phone) over the box and it
   rattles. Hold the click and it resists. Double-click to skip a box and get
   scolded. The browser back button re-seals the previous box.

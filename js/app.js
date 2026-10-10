@@ -1,7 +1,7 @@
 // bigboxguy.com — the box engine. A box opens. There is a box inside. Repeat.
 import { sfx, strain, setMuted, isMuted, unlock } from './audio.js';
 import { DROPS, TIER_LABEL, rollDrop, dropSVG } from './drops.js';
-import { renderCertificate } from './cert.js';
+import { renderCertificate, CERT_TIERS, tierAt } from './cert.js';
 import { renderShare, shareText } from './share.js';
 import * as api from './api.js';
 
@@ -11,6 +11,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const fmt = (n) => Number(n).toLocaleString('en-US');
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+const today = () => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 const store = {
   get(k, d) { try { const v = localStorage.getItem('bbg.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('bbg.' + k, JSON.stringify(v)); } catch {} },
@@ -92,7 +93,7 @@ const HINTS = [
 const MILESTONES = {
   10: "Box 10. Ten boxes. Ten. And you're not even tired.",
   25: "Box 25. You've loved 25 boxes. Every one of them opened up for you.",
-  50: 'Box 50. Halfway to a certificate. Hydrate. The Association is watching. Approvingly.',
+  50: 'Box 50. Halfway to your first certificate. Hydrate. The Association is watching. Approvingly.',
   75: "Box 75. Big ones, small ones, tight ones. You don't discriminate. Respect.",
   99: "Box 99. Almost there. Don't finish early.",
   250: "Box 250. The Association has been notified. They're thrilled. They're a little jealous.",
@@ -103,7 +104,7 @@ const MILESTONES = {
 
 // ---------------------------------------------------------------- state
 const state = {
-  depth: 1, opened: 0, coll: {}, fresh: [], lastDrop: 0, lastTrout: 0, name: '', cert: false, seen: {},
+  depth: 1, opened: 0, coll: {}, fresh: [], lastDrop: 0, lastTrout: 0, name: '', certs: {}, seen: {},
   s: 1, busy: false, lastClick: 0, skip: false, el: null, current: null, next: null,
 };
 const stage = $('#stage');
@@ -116,12 +117,16 @@ function load() {
   state.lastDrop = store.get('lastDrop', 0) || 0;
   state.lastTrout = store.get('lastTrout', 0) || 0;
   state.name = String(store.get('name', '') || '');
-  state.cert = !!store.get('cert', false);
+  state.certs = store.get('certs', null) || {};
+  // Older saves had a single Box 100 certificate flag. Carry it over.
+  if (store.get('cert', false) && !state.certs[100]) {
+    state.certs[100] = { serial: store.get('serial', null) || `BBG-${Math.floor(Math.random() * 90000) + 10000}-100`, date: store.get('certDate', null) || today() };
+  }
   state.seen = store.get('seen', {}) || {};
 }
 const persist = () => {
   store.set('depth', state.depth); store.set('opened', state.opened); store.set('coll', state.coll);
-  store.set('fresh', state.fresh); store.set('lastDrop', state.lastDrop); store.set('lastTrout', state.lastTrout); store.set('cert', state.cert); store.set('seen', state.seen);
+  store.set('fresh', state.fresh); store.set('lastDrop', state.lastDrop); store.set('lastTrout', state.lastTrout); store.set('certs', state.certs); store.set('seen', state.seen);
 };
 
 // ---------------------------------------------------------------- boxes
@@ -339,31 +344,37 @@ function modal(html, opts = {}) {
 function milestones() {
   const d = state.depth;
   if (MILESTONES[d]) toast(MILESTONES[d]);
-  if (d >= 100 && !state.cert) {
-    state.cert = true; persist();
+  const earned = CERT_TIERS.filter((t) => d >= t.at && !state.certs[t.at]);
+  if (earned.length) {
+    for (const t of earned) {
+      state.certs[t.at] = { serial: `${t.prefix}-${Math.floor(Math.random() * 90000) + 10000}-${t.at}`, date: today() };
+    }
+    persist();
     sfx('tada');
-    setTimeout(() => openCertificate(true), 700);
+    const top = earned[earned.length - 1];
+    setTimeout(() => openCertificate(top.at, true), 700);
   }
   if (d >= 1000 && !state.seen.shortage) { state.seen.shortage = true; persist(); setTimeout(shortage, 600); }
   if (d >= 10000 && !state.seen.credits) { state.seen.credits = true; persist(); setTimeout(credits, 600); }
 }
 
-async function openCertificate(justEarned = false) {
-  const serial = store.get('serial', null) || `BBG-${String(Math.floor(Math.random() * 90000) + 10000)}-100`;
-  store.set('serial', serial);
-  const date = store.get('certDate', null) || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  store.set('certDate', date);
+async function openCertificate(at = 100, justEarned = false) {
+  const tier = tierAt(at) || CERT_TIERS[0];
+  const rec = state.certs[tier.at] || { serial: `${tier.prefix}-${Math.floor(Math.random() * 90000) + 10000}-${tier.at}`, date: today() };
+  state.certs[tier.at] = rec; persist();
+  const others = CERT_TIERS.filter((t) => state.certs[t.at] && t.at !== tier.at);
   const ov = modal(`
-    <h2>${justEarned ? 'Box 100. Congratulations.' : 'Your certificate'}</h2>
-    <p>${justEarned ? 'One hundred boxes, loved. Deeply. You have been certified. This was not optional.' : 'Still valid. It will always be valid. Like your love of box. Like the ache in your wrists.'}</p>
+    <h2>${justEarned ? `Box ${fmt(tier.at)}. Congratulations.` : tier.title.replace(/\b\w+/g, (w) => w[0] + w.slice(1).toLowerCase())}</h2>
+    <p>${justEarned ? esc(tier.quip) : 'Still valid. It will always be valid. Like your love of box. Like the ache in your wrists.'}</p>
     <div class="row"><input type="text" id="cert-name" maxlength="28" placeholder="Your name, as it should appear" value="${esc(state.name)}"><button class="btn" id="cert-redraw">Update name</button></div>
     <div class="certwrap" id="certwrap" style="margin-top:12px"><p class="muted">Drawing your certificate…</p></div>
     <div class="row"><button class="btn primary" id="cert-dl">Download certificate (PNG)</button><span class="muted">Printing it does not make it more official. It is already maximally official.</span></div>
+    ${others.length ? `<p class="muted" style="margin-top:14px">Your other certificates: ${others.map((t) => `<button class="btn" data-cert="${t.at}" style="margin:2px 4px 2px 0;padding:5px 10px;font-size:13px">Box ${fmt(t.at)}</button>`).join('')}</p>` : ''}
   `);
   const draw = async () => {
     const name = $('#cert-name', ov).value.trim() || 'A Guy';
     state.name = name; store.set('name', name);
-    const c = await renderCertificate({ name, date, serial });
+    const c = await renderCertificate({ tier, name, date: rec.date, serial: rec.serial });
     const wrap = $('#certwrap', ov);
     wrap.innerHTML = '';
     wrap.appendChild(c);
@@ -374,11 +385,12 @@ async function openCertificate(justEarned = false) {
   $('#cert-name', ov).addEventListener('keydown', async (e) => { if (e.key === 'Enter') canvas = await draw(); });
   $('#cert-dl', ov).addEventListener('click', () => {
     const a = document.createElement('a');
-    a.download = 'certified-big-box-guy.png';
+    a.download = `${tier.file}.png`;
     a.href = canvas.toDataURL('image/png');
     a.click();
     toast('Downloaded. Frame it. Hang it where she can see it.');
   });
+  ov.querySelectorAll('[data-cert]').forEach((b) => b.addEventListener('click', () => { ov.close(); openCertificate(Number(b.dataset.cert), false); }));
 }
 
 function shortage() {
@@ -494,7 +506,13 @@ function openMenu() {
     <h2>Big Box Guy</h2>
     <p class="muted">You are on Box ${fmt(state.depth)}. You have loved ${fmt(state.opened)} ${state.opened === 1 ? 'box' : 'boxes'}.</p>
     <div class="row"><label style="flex:1">Your name<br><input type="text" id="menu-name" maxlength="28" value="${esc(state.name)}" placeholder="For the certificate and leaderboard" style="width:100%;margin-top:4px"></label></div>
-    ${state.cert ? '<div class="row"><button class="btn" id="menu-cert">View my certificate</button></div>' : '<p class="muted">A certificate is issued at Box 100. You are at Box ' + fmt(state.depth) + '.</p>'}
+    ${(() => {
+      const have = CERT_TIERS.filter((t) => state.certs[t.at]);
+      const next = CERT_TIERS.find((t) => !state.certs[t.at]);
+      const list = have.length ? `<div class="row">${have.map((t) => `<button class="btn" data-cert="${t.at}">Box ${fmt(t.at)}: ${esc(t.title.replace(/\b\w+/g, (w) => w[0] + w.slice(1).toLowerCase()))}</button>`).join('')}</div>` : '';
+      const hint = next ? `<p class="muted">${have.length ? 'Next certificate' : 'The first certificate is issued'} at Box ${fmt(next.at)}. You are at Box ${fmt(state.depth)}.</p>` : '<p class="muted">You hold every certificate the Association issues. There is only box now.</p>';
+      return `<h3>Certificates</h3>${list}${hint}`;
+    })()}
     <h3>Things you can do</h3>
     <ul class="muted" style="line-height:1.8;margin:0;padding-left:18px">
       <li>Click the box. Love the box. Get in there. There is always another box.</li>
@@ -506,14 +524,13 @@ function openMenu() {
       <li>Some boxes contain things. Collect them all. One of them is the Trout Box. After 1,000 boxes without it, the next one is the Trout Box. You deserve it.</li>
     </ul>
     <h3>Start over</h3>
-    <div class="row"><button class="btn" id="menu-reset">Return all boxes to sender</button><span class="muted">Resets your depth, collection, and certificate on this device.</span></div>
+    <div class="row"><button class="btn" id="menu-reset">Return all boxes to sender</button><span class="muted">Resets your depth, collection, and certificates on this device.</span></div>
     <p class="muted" style="margin-top:18px">Made by a guy who loves box. <a href="about.html">About the Big Box Guy</a> · <a href="services.html">Services</a> · <a href="pricing.html">Pricing</a></p>
   `);
   $('#menu-name', ov).addEventListener('change', (e) => { state.name = e.target.value.trim(); store.set('name', state.name); });
-  const cb = $('#menu-cert', ov);
-  if (cb) cb.addEventListener('click', () => { ov.close(); openCertificate(false); });
+  ov.querySelectorAll('[data-cert]').forEach((b) => b.addEventListener('click', () => { ov.close(); openCertificate(Number(b.dataset.cert), false); }));
   $('#menu-reset', ov).addEventListener('click', () => {
-    if (!confirm('Return all boxes to sender? This resets your depth, collection, and certificate.')) return;
+    if (!confirm('Return all boxes to sender? This resets your depth, collection, and certificates.')) return;
     store.clear();
     location.href = location.pathname;
   });
