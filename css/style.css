@@ -48,9 +48,8 @@ nav a:hover,nav a[aria-current]{opacity:1;text-decoration:underline;text-decorat
 .badge[hidden]{display:none}
 
 main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:22px 16px 30px}
-.counter{text-align:center}
-.depth{font-family:var(--marker);font-size:clamp(36px,7vw,58px);line-height:1}
-.sub{color:var(--ink-soft);font-size:14px;margin-top:6px}
+.depth{font-family:var(--marker);font-size:clamp(20px,2.6vw,28px);line-height:1;padding:4px 2px 4px 12px;margin-left:6px;
+  border-left:2px dashed var(--kraft-dark);white-space:nowrap}
 .hint{color:var(--ink-soft);font-size:14px;min-height:20px;margin:0;text-align:center}
 .bottom{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:12px;font-size:13px;color:var(--ink-soft);border-top:2px dashed var(--kraft-dark)}
 
@@ -116,8 +115,11 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 
 .tape{position:absolute;left:50%;transform:translateX(-50%);width:13%;background:var(--tape);
   box-shadow:0 0 0 1px var(--tape-edge);z-index:1}
-.flap.t .tape{bottom:0;height:62%;clip-path:polygon(0 0,100% 0,100% 94%,85% 100%,70% 93%,55% 100%,40% 94%,25% 100%,10% 95%,0 100%)}
-.flap.b .tape{top:0;height:62%;clip-path:polygon(0 0,12% 6%,28% 0,42% 7%,58% 0,72% 6%,88% 0,100% 5%,100% 100%,0 100%)}
+/* Sealed: the two halves overlap into one continuous strip. Open: each half tears along the seam. */
+.flap.t .tape{bottom:-1px;height:62%}
+.flap.b .tape{top:-1px;height:62%}
+.box.open > .flap.t .tape{clip-path:polygon(0 0,100% 0,100% 94%,85% 100%,70% 93%,55% 100%,40% 94%,25% 100%,10% 95%,0 100%)}
+.box.open > .flap.b .tape{clip-path:polygon(0 0,12% 6%,28% 0,42% 7%,58% 0,72% 6%,88% 0,100% 5%,100% 100%,0 100%)}
 .xtape{position:absolute;left:-6%;right:-6%;top:50%;height:11%;transform:translateY(-50%) rotate(var(--xr,32deg));
   background:var(--tape);box-shadow:0 0 0 1px var(--tape-edge);z-index:6;transition:opacity .2s,transform .25s}
 .xtape.a{--xr:33deg}.xtape.b{--xr:-33deg}

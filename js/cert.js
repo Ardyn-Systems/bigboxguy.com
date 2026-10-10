@@ -74,7 +74,7 @@ export async function renderCertificate({ name, date, serial }) {
   ctx.beginPath(); ctx.moveTo(W / 2 - nw / 2, 600); ctx.lineTo(W / 2 + nw / 2, 600); ctx.stroke();
 
   ctx.font = '30px Rubik';
-  center(ctx, 'has personally loved one hundred (100) boxes, of every shape and every size, and asked for nothing in return.', W / 2, 660);
+  center(ctx, 'has personally loved one hundred (100) boxes, of every shape and size, gone all the way in, and asked for nothing in return.', W / 2, 660);
   center(ctx, 'They did not stop. Nobody asked them to. They are, henceforth and forever, a Big Box Guy.', W / 2, 704);
 
   // seal

@@ -26,67 +26,79 @@ const FROMTO = [
   ['Warehouse 7', 'Your Hands'],
   ['The Association', 'A New Member'],
   ['Big Box Guy', 'Whom It May Concern'],
+  ['Her', 'You'],
 ];
 const JOKES = [
   'FRAGILE. Handle like you mean it.',
-  "This side up. Or any side. We're not picky.",
+  "This side up. Or any side. She's not picky.",
   'Big box, small box. We love every box.',
-  'Contents: one box. Lovingly packed.',
-  'Handle with care. Then handle it again.',
+  'Warm. Snug. Opens with a little encouragement.',
+  'Handle with care. She likes it slow.',
   'If found, return to a guy who loves box.',
-  'Net weight: a lot of love.',
+  'Tight fit. Worth the effort.',
   'Thick walls. Sturdy bottom. Ten out of ten.',
   'Flat box, tall box, wide box. All box.',
   "Best before: never. Box doesn't expire.",
   'Some assembly required. Take your time.',
-  'Keep in a warm, dry place. Like a guy.',
-  'Stackable. Enthusiastically.',
-  'Inspected by #12. Thoroughly. Twice.',
+  'Keep her warm and dry. Or warm and not dry.',
+  'Opens easier the second time.',
+  'Inspected by #12. Thoroughly. With a flashlight.',
   "Open gently. She's been through shipping.",
   "Oversized. That's a compliment.",
   'Not a toy. Can be used as one.',
-  'Open here. Or there. Wherever feels right.',
+  'Enter from the top. Or wherever she says.',
   'Property of Big Box Guy. He loves every one.',
-  'Opened many times. Still holds up.',
+  'Opened many times. Still tight.',
   'Reusable. Go on. Reuse it.',
-  'Guaranteed box, or your box back.',
-  'Made in a facility that really loves box.',
-  "Mystery box. Spoiler: it's great.",
-  "You've been here before. Welcome back.",
+  'Fits more than you would think.',
+  'Fresh box. Never been opened. Until you.',
+  "Mystery box. Spoiler: it's wet in there.",
+  "You've been here before. She remembers.",
   'Serving size: one guy. Servings: all night.',
   'Do not microwave. Already hot.',
-  'Quality box since whenever. Still a ten.',
-  'Signature required. Then obtained.',
-  'Please recycle. A box deserves a second life.',
-  'Lift with your legs. Admire with your eyes.',
+  'Deep box. Bring a flashlight.',
+  'Signature required. Then obtained. Twice.',
+  'Finger holes on both sides. For carrying.',
+  'Lift with your legs. Finish with your hands.',
   'This box has a great personality. And corners.',
-  'Approved by one (1) guy. Vigorously.',
-  "Square box, round hole? We'll figure it out.",
-  'Corrugated. Ribbed for sturdiness.',
+  'Approved by one (1) guy. Vigorously. At length.',
+  "Square box, round hole? We'll make it work.",
+  'Corrugated. Ribbed. For her pleasure.',
   'Double-walled. Built to last all night.',
-  'Comes in every size. Every one gets love.',
-  'Hold it close. Tell it it is a good box.',
-  'Shapes: all of them. Sizes: yes.',
+  'Squeeze gently. She opens up.',
+  'Stuff it full. She can take it.',
+  'Moist? That is the packing peanuts. Probably.',
+  'Lick to seal. Lick to open. Lick for fun.',
+  'Round the back there is a second flap.',
+  "Hairy edges? That's just the corrugation.",
+  'Comes with a flap. The flap comes off.',
+  'Lube not included. Tape is dry.',
+  'Hot box. Use both hands.',
+  'Size: generous. Depth: yes.',
+  "She's been through a lot. She still opens.",
+  'Box so good you will call it a crate.',
 ];
 const STAMPS = [
   'Fragile', 'This side up', 'Priority', 'Heavy-ish', 'Handle w/ care', 'Box', 'Urgent (not really)',
   'Delivered', 'Do not bend', '2nd day box', 'Inspected', 'Approved', 'Loved', 'Good box', 'Big one',
+  'Wet', 'Tight', 'Open me', 'Been opened', 'Snug',
 ];
 const HINTS = [
-  'Another box. Another love.', 'Keep going.', "It's box all the way down. We don't mind.", 'Go on.', 'You know what to do.',
-  'Try shaking it first.', 'Hold it down. See what happens.', "Each one is a little smaller. Size isn't everything.",
-  'Nobody is making you do this. You want to.', 'All shapes. All sizes. All yours.',
+  'Another box. Another love.', 'Keep going.', "It's box all the way down. We don't mind.", 'Go on. She wants you to.',
+  'You know what to do.', 'Try shaking it first. Gently.', 'Hold it down. See what happens.',
+  "Each one is a little smaller. Size isn't everything.", 'Nobody is making you do this. You want to.',
+  'All shapes. All sizes. All yours.', 'Get in there.', 'Two hands. Take your time.',
 ];
 const MILESTONES = {
-  10: "Box 10. You're getting the hang of it. The box noticed.",
-  25: "Box 25. You've loved 25 boxes. They've all loved you back.",
-  50: 'Box 50. Halfway to a certificate. The Association is watching. Approvingly.',
-  75: "Box 75. Big ones, small ones. You don't discriminate. Respect.",
-  99: 'Box 99. Something is about to happen. Be gentle.',
-  250: "Box 250. The Association has been notified. They're thrilled.",
-  500: "Box 500. Justin Box would like a word. The word is 'box'. He said it slowly.",
-  2000: "Box 2,000. We checked. It's still box. You're still here. That's love.",
-  5000: 'Box 5,000. Please drink some water. Stretch. Then get back to box.',
+  10: "Box 10. Ten boxes. Ten. And you're not even tired.",
+  25: "Box 25. You've loved 25 boxes. Every one of them opened up for you.",
+  50: 'Box 50. Halfway to a certificate. Hydrate. The Association is watching. Approvingly.',
+  75: "Box 75. Big ones, small ones, tight ones. You don't discriminate. Respect.",
+  99: "Box 99. Almost there. Don't finish early.",
+  250: "Box 250. The Association has been notified. They're thrilled. They're a little jealous.",
+  500: "Box 500. Justin Box would like a word. The word is 'box'. He whispered it.",
+  2000: "Box 2,000. We checked. It's still box. You're still going. That's love. Or something.",
+  5000: 'Box 5,000. Please drink some water. Stretch. Wash your hands. Then get back to box.',
 };
 
 // ---------------------------------------------------------------- state
@@ -181,7 +193,7 @@ function click() {
     if (strip) strip.classList.add('ripped');
     cur.tapeLeft--;
     sfx('rip');
-    hint(cur.tapeLeft ? 'Extra secure. Keep going.' : 'There. Now be gentle.');
+    hint(cur.tapeLeft ? 'She is wrapped up tight. Keep going.' : 'There. Now be gentle. First time is always a little sticky.');
     return;
   }
   open();
@@ -204,7 +216,7 @@ async function open() {
   if (state.skip) {
     n = 2; state.opened++;
     sfx('tut');
-    toast("You didn't even savor that one. Slow down. The box deserves better.", 'scold');
+    toast("You didn't even savor that one. Slow down. Box deserves a little foreplay.", 'scold');
   }
   advance(n);
 }
@@ -282,7 +294,6 @@ function peanuts(box) {
 function hint(t) { $('#hint').textContent = t; }
 function updateUI() {
   $('#depth').textContent = fmt(state.depth);
-  $('#depth-sub').textContent = `You have loved ${fmt(state.opened)} ${state.opened === 1 ? 'box' : 'boxes'}.`;
   document.title = `Box ${fmt(state.depth)} - bigboxguy.com`;
   favicon(((state.depth - 1) % 12) / 11);
   if (state.depth > 1 && state.depth % 3 === 0 && Math.random() < 0.6) hint(pick(HINTS));
@@ -344,7 +355,7 @@ async function openCertificate(justEarned = false) {
   store.set('certDate', date);
   const ov = modal(`
     <h2>${justEarned ? 'Box 100. Congratulations.' : 'Your certificate'}</h2>
-    <p>${justEarned ? 'One hundred boxes, loved. You have been certified. This was not optional.' : 'Still valid. It will always be valid. Like your love of box.'}</p>
+    <p>${justEarned ? 'One hundred boxes, loved. Deeply. You have been certified. This was not optional.' : 'Still valid. It will always be valid. Like your love of box. Like the ache in your wrists.'}</p>
     <div class="row"><input type="text" id="cert-name" maxlength="28" placeholder="Your name, as it should appear" value="${esc(state.name)}"><button class="btn" id="cert-redraw">Update name</button></div>
     <div class="certwrap" id="certwrap" style="margin-top:12px"><p class="muted">Drawing your certificate…</p></div>
     <div class="row"><button class="btn primary" id="cert-dl">Download certificate (PNG)</button><span class="muted">Printing it does not make it more official. It is already maximally official.</span></div>
@@ -366,7 +377,7 @@ async function openCertificate(justEarned = false) {
     a.download = 'certified-big-box-guy.png';
     a.href = canvas.toDataURL('image/png');
     a.click();
-    toast('Downloaded. Frame it. Or box it. You know what you like.');
+    toast('Downloaded. Frame it. Hang it where she can see it.');
   });
 }
 
@@ -377,7 +388,7 @@ function shortage() {
       <h2>NOTICE OF TEMPORARY BOX SHORTAGE</h2>
       <p>To whom it may concern,</p>
       <p>Due to unprecedented demand (you), bigboxguy.com has temporarily run out of boxes.</p>
-      <p>We have loved one thousand (1,000) boxes together. Every shape. Every size. We did not anticipate this kind of stamina.</p>
+      <p>We have loved one thousand (1,000) boxes together. Every shape. Every size. Some of them twice. We did not anticipate this kind of stamina, and frankly, neither did they.</p>
       <p>Management sincerely apologizes for the inconvenience. We are looking in the back. There is always one in the back.</p>
       <p>— Management</p>
       <div class="row"><button class="btn primary" id="shortage-ok">I understand</button></div>
@@ -408,7 +419,7 @@ function openCollection() {
   state.fresh = []; persist(); updateBadge();
   modal(`
     <h2>Collection</h2>
-    <p class="muted">${found} of ${DROPS.length} found. Things are in boxes sometimes. The odds are real. Keep loving.</p>
+    <p class="muted">${found} of ${DROPS.length} found. Things are in boxes sometimes. You have to go in and feel around. The odds are real. Keep loving.</p>
     <div class="coll">${DROPS.map((d) => {
       const n = state.coll[d.id] || 0;
       return `<div class="card ${n ? '' : 'locked'}">${fresh.has(d.id) ? '<span class="new">NEW</span>' : ''}
@@ -424,13 +435,14 @@ function openCollection() {
 }
 
 async function openBoard() {
+  let refresh = 0;
   const ov = modal(`
     <h2>Deepest Box</h2>
-    <p class="muted">Pure vanity. No accounts. Just a name and a number nobody can verify. Like most stories about box.</p>
+    <p class="muted">Pure vanity. No accounts. Just a name and a number nobody can verify. Like every story a guy has ever told about box.</p>
     <ol class="board" id="board"><li><span class="rank"></span><span class="nm muted">Checking the back…</span></li></ol>
     <form class="row" id="scoreform"><input type="text" name="name" maxlength="20" placeholder="Your name (or title)" value="${esc(state.name)}" required><button class="btn primary" type="submit">Submit Box ${fmt(state.depth)}</button></form>
     <p class="muted" id="board-note"></p>
-  `);
+  `, { onClose: () => clearInterval(refresh) });
   const draw = (board, me) => {
     const ol = $('#board', ov);
     if (!board) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">The leaderboard is in a different box right now. (No connection to the box server.)</span></li>'; return; }
@@ -439,6 +451,12 @@ async function openBoard() {
   };
   const st = await api.getStats();
   draw(st ? st.board : null, state.name);
+  // Other guys are submitting too. Keep the list fresh while it is open.
+  refresh = setInterval(async () => {
+    if (!document.body.contains(ov)) { clearInterval(refresh); return; }
+    const s = await api.getStats();
+    if (s) draw(s.board, state.name);
+  }, 15000);
   $('#scoreform', ov).addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = $('input', ov).value.trim().slice(0, 20);
@@ -450,7 +468,7 @@ async function openBoard() {
     btn.disabled = false;
     if (!res) { $('#board-note', ov).textContent = 'Could not reach the box server. Your box remains deep in spirit.'; return; }
     draw(res.board, name);
-    $('#board-note', ov).textContent = res.rank ? `You are #${res.rank}. Your box is deep. Everyone can see.` : 'Submitted. Deeper boxes exist. Keep going.';
+    $('#board-note', ov).textContent = res.rank ? `You are #${res.rank}. You went deep. Everyone can see.` : 'Submitted. Deeper boxes exist. Keep going.';
     toast('Leaderboard updated. Nobody can take this from you. Many will try.');
   });
 }
@@ -474,15 +492,16 @@ async function share() {
 function openMenu() {
   const ov = modal(`
     <h2>Big Box Guy</h2>
+    <p class="muted">You are on Box ${fmt(state.depth)}. You have loved ${fmt(state.opened)} ${state.opened === 1 ? 'box' : 'boxes'}.</p>
     <div class="row"><label style="flex:1">Your name<br><input type="text" id="menu-name" maxlength="28" value="${esc(state.name)}" placeholder="For the certificate and leaderboard" style="width:100%;margin-top:4px"></label></div>
     ${state.cert ? '<div class="row"><button class="btn" id="menu-cert">View my certificate</button></div>' : '<p class="muted">A certificate is issued at Box 100. You are at Box ' + fmt(state.depth) + '.</p>'}
     <h3>Things you can do</h3>
     <ul class="muted" style="line-height:1.8;margin:0;padding-left:18px">
-      <li>Click the box. Love the box. There is always another box.</li>
-      <li>Shake your mouse over the box (or shake your phone) to hear what's inside.</li>
-      <li>Hold the click down. The box has opinions about that.</li>
-      <li>Double-click to skip a box. Please don't.</li>
-      <li>The browser back button goes back a box. The box remembers.</li>
+      <li>Click the box. Love the box. Get in there. There is always another box.</li>
+      <li>Shake your mouse over the box (or shake your phone) to hear what's inside. Gently. She's sensitive.</li>
+      <li>Hold the click down. She has opinions about that. Hold long enough and she gives in.</li>
+      <li>Double-click to skip a box. Please don't. Nobody likes a guy who rushes.</li>
+      <li>The browser back button goes back a box. She remembers. She always remembers.</li>
       <li>Every box is a different shape and size. Love them all. Some are taped shut, some are upside down, some are too big. Lucky you.</li>
       <li>Some boxes contain things. Collect them all. One of them is the Trout Box. After 1,000 boxes without it, the next one is the Trout Box. You deserve it.</li>
     </ul>
@@ -518,14 +537,14 @@ stage.addEventListener('pointerdown', (e) => {
   state.lastClick = now; downAt = now;
   clearHold();
   holdT1 = setTimeout(() => {
-    straining = true; box.classList.add('straining'); strain(true); hint("It's playing hard to get.");
+    straining = true; box.classList.add('straining'); strain(true); hint("She's playing hard to get.");
   }, 380);
-  holdT2 = setTimeout(() => { endStrain(); downAt = 0; toast('FINE.', 'scold'); open(); }, 2100);
+  holdT2 = setTimeout(() => { endStrain(); downAt = 0; toast('FINE. But only because you held on.', 'scold'); open(); }, 2100);
 });
 stage.addEventListener('pointerup', (e) => {
   clearHold();
   if (!state.el || state.busy) { downAt = 0; return; }
-  if (straining) { endStrain(); hint("It's shy. Try a gentle click."); downAt = 0; return; }
+  if (straining) { endStrain(); hint("She's shy. Try a gentle click. Maybe buy her dinner."); downAt = 0; return; }
   if (downAt && performance.now() - downAt < 380 && e.target.closest('.box.main')) click();
   downAt = 0;
 });
@@ -556,7 +575,7 @@ function rattle() {
   box.classList.add('rattling');
   sfx('rattle');
   const d = state.current.drop;
-  hint(d ? (d.id === 'trout' ? 'Something is flopping in there.' : "Something's in there.") : 'Sounds like… a box. A good one.');
+  hint(d ? (d.id === 'trout' ? 'Something is flopping in there. It is wet.' : "Something's in there. Go deeper.") : 'Sounds like… a box. A good one. Snug.');
   setTimeout(() => box.classList.remove('rattling'), 600);
 }
 // Shake the phone: same thing.
@@ -589,7 +608,7 @@ addEventListener('popstate', (e) => {
   if (state.el) state.el.remove();
   render({ resealed: true });
   sfx('thunk');
-  toast('The box noticed you came back. It has been re-sealed. Play it cool.', 'scold');
+  toast('She noticed you came back. She has re-sealed. Play it cool. Act like you have been in box before.', 'scold');
   updateUI();
 });
 
@@ -623,9 +642,17 @@ async function worldwide() {
   state.s = Math.pow(0.88, (state.depth - 1) % 12);
   state.current = makeBox(state.depth);
   state.next = makeBox(state.depth + 1);
+  // Testing hook: ?variant=taped|flip|big forces the first box's variant.
+  const forced = q.get('variant');
+  if (forced && ['taped', 'flip', 'big'].includes(forced)) {
+    state.current.variant = forced;
+    state.current.tapeLeft = forced === 'taped' ? 2 : 0;
+    state.current.factor = forced === 'big' ? 1.08 : 0.88;
+    history.replaceState(null, '', location.pathname);
+  }
   render();
   updateUI();
-  hint(state.depth === 1 ? 'Click the box.' : 'Welcome back. It is still box. It missed you.');
+  hint(state.depth === 1 ? 'Click the box. Go on.' : 'Welcome back. She is still box. She missed you.');
   history.replaceState({ depth: state.depth }, '');
   worldwide();
   setInterval(worldwide, 60000);
