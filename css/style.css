@@ -145,6 +145,12 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
   background:rgba(255,250,240,.35)
 }
 
+/* The Trout Box. Slightly damp. */
+.box.troutbox .flap::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 62% 70%,rgba(60,110,140,.28),transparent 55%),radial-gradient(ellipse at 30% 30%,rgba(60,110,140,.16),transparent 50%)}
+.box.troutbox .label .joke{color:#1d4f6b;font-size:5cqw;letter-spacing:1px}
+.box.troutbox .stamp{color:#1d4f6b;border-color:#1d4f6b}
+
 /* ---------- drops ---------- */
 .drop.peanut svg{animation:floatoff 1.8s ease-in forwards}
 .drop.bubble svg{animation:popit 1.4s ease-out forwards}

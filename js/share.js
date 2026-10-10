@@ -2,7 +2,7 @@
 import { drawBox } from './draw.js';
 
 export function shareText(opened) {
-  return `I opened ${Number(opened).toLocaleString('en-US')} boxes and all I found was this box. bigboxguy.com`;
+  return `I have loved ${Number(opened).toLocaleString('en-US')} boxes. Every shape. Every size. bigboxguy.com`;
 }
 
 export async function renderShare({ opened }) {
@@ -31,7 +31,7 @@ export async function renderShare({ opened }) {
   ctx.fillStyle = '#2b2117';
   ctx.textAlign = 'left';
   ctx.font = '500 44px Rubik';
-  ctx.fillText('I opened', x, 150);
+  ctx.fillText('I have loved', x, 150);
   ctx.font = "150px 'Permanent Marker'";
   const n = Number(opened).toLocaleString('en-US');
   let size = 150;
@@ -40,8 +40,8 @@ export async function renderShare({ opened }) {
   ctx.font = '500 44px Rubik';
   ctx.fillText(opened === 1 ? 'box' : 'boxes', x, 350);
   ctx.font = "48px 'Permanent Marker'";
-  ctx.fillText('and all I found', x, 440);
-  ctx.fillText('was this box.', x, 500);
+  ctx.fillText('Every shape.', x, 440);
+  ctx.fillText('Every size.', x, 500);
   ctx.fillStyle = '#c8322b';
   ctx.font = '700 32px Rubik';
   ctx.textAlign = 'right';

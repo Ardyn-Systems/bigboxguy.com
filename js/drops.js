@@ -6,26 +6,31 @@ export const TIER_LABEL = {
 
 export const DROPS = [
   { id: 'peanut',  name: 'Packing Peanut',      tier: 'common',    odds: 1 / 9,   sfx: 'paper', ms: 1800,
-    desc: 'A single packing peanut. It does not know where the others went.' },
+    desc: 'A single packing peanut. It got around.' },
   { id: 'bubble',  name: 'One Bubble of Wrap',  tier: 'common',    odds: 1 / 14,  sfx: 'pop',   ms: 1400,
-    desc: 'Already popped. By whom? Unknown.' },
+    desc: "Already popped. Someone couldn't wait." },
   { id: 'receipt', name: 'Receipt for $0.00',   tier: 'uncommon',  odds: 1 / 26,  sfx: 'paper', ms: 2000,
-    desc: 'Please keep it for your records.' },
+    desc: 'The box was free. The love was priceless. Keep it for your records.' },
   { id: 'manual',  name: 'Instruction Manual',  tier: 'uncommon',  odds: 1 / 34,  sfx: 'paper', ms: 2000,
-    desc: 'Page 1 of 1. The page is blank.' },
+    desc: "Page 1 of 1. The page is blank. You'll figure it out. You always do." },
   { id: 'cat',     name: 'Cat',                 tier: 'rare',      odds: 1 / 65,  sfx: 'meow',  ms: 2100,
-    desc: 'It has already moved into the next box.' },
+    desc: 'It has already moved into the next box. Cats know a good box.' },
   { id: 'guy',     name: 'Smaller Big Box Guy', tier: 'epic',      odds: 1 / 160, sfx: 'hi',    ms: 2400,
-    desc: 'He waved. Then he left, to go be in a box.' },
+    desc: 'He waved. Then he left, to go love a box of his own.' },
   { id: 'trout',   name: 'Trout',               tier: 'legendary', odds: 1 / 500, sfx: 'flop',  ms: 2600,
-    desc: 'A trout. In a box. Nobody can explain this. Nobody has tried.' },
+    desc: "A trout. In a box. It's a fish. It's in a box. Nobody is judging." },
 ];
 
 export const byId = Object.fromEntries(DROPS.map((d) => [d.id, d]));
 
+// Boxes without a trout before the trout is guaranteed. Bad luck has a ceiling.
+export const TROUT_PITY = 1000;
+
 // Roll rarest-first so a legendary roll is never eaten by a peanut.
-export function rollDrop(depth, lastDropDepth) {
+export function rollDrop(depth, lastDropDepth, lastTroutDepth = 0) {
   if (depth < 3) return null;
+  // Pity timer: a guy who has loved 1,000 boxes without a trout gets a trout.
+  if (depth - (lastTroutDepth || 0) >= TROUT_PITY) return byId.trout;
   for (let i = DROPS.length - 1; i >= 0; i--) {
     if (Math.random() < DROPS[i].odds) return DROPS[i];
   }

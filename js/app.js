@@ -1,6 +1,6 @@
 // bigboxguy.com — the box engine. A box opens. There is a box inside. Repeat.
 import { sfx, strain, setMuted, isMuted, unlock } from './audio.js';
-import { DROPS, TIER_LABEL, byId, rollDrop, dropSVG } from './drops.js';
+import { DROPS, TIER_LABEL, rollDrop, dropSVG } from './drops.js';
 import { renderCertificate } from './cert.js';
 import { renderShare, shareText } from './share.js';
 import * as api from './api.js';
@@ -20,73 +20,78 @@ const store = {
 // ---------------------------------------------------------------- copy
 const FROMTO = [
   ['Big Box Guy', 'Big Box Guy'],
-  ['Big Box Guy', 'You, apparently'],
-  ['The Box', 'The Next Box'],
+  ['Big Box Guy', 'You, gorgeous'],
+  ['A Box', 'A Guy Who Loves Box'],
   ['Big Box Guy', 'Current Resident'],
-  ['Warehouse 7', 'Warehouse 7'],
-  ['A Box', 'A Guy'],
+  ['Warehouse 7', 'Your Hands'],
+  ['The Association', 'A New Member'],
   ['Big Box Guy', 'Whom It May Concern'],
 ];
 const JOKES = [
-  'FRAGILE: contents may contain box.',
-  'This side up (any side is up).',
-  'Do not open. Just kidding. Open.',
-  'Contents: 1 (one) box.',
-  "Handle with care. Or don't. It's a box.",
-  'If found, please return to box.',
-  'Batteries not included. Box included.',
-  'Net weight: one box.',
-  'May contain traces of box.',
-  'Best before: the next box.',
-  "Some assembly required (it's assembled).",
-  'Keep refrigerated. (optional)',
-  'Do not stack more than ∞ high.',
-  'Inspected by #12. #12 is a box.',
-  'Shipped from inside a slightly larger box.',
-  'Ships in original packaging (this).',
-  'Not a toy. Also not not a toy.',
-  'Open here ↓ (or anywhere)',
-  'Property of Big Box Guy. Do not fold.',
-  'Opened 0 times. Until now.',
-  'Warranty void if box.',
-  'Reusable! (You are reusing it right now.)',
-  'Guaranteed box or your box back.',
-  'Made in a facility that also makes boxes.',
-  "Mystery box. The mystery: it's a box.",
-  "You've been here before.",
-  'Serving size: 1 box. Servings: 1.',
-  'Do not microwave. We tried.',
-  'Quality boxes since whenever.',
-  'Tracking: delivered. To itself.',
-  'Contains: the next part of your day.',
-  'Please recycle me after the last box.',
-  'Lift with your legs, not your hopes.',
-  'This box has a great personality.',
-  'Approved by one (1) guy.',
+  'FRAGILE. Handle like you mean it.',
+  "This side up. Or any side. We're not picky.",
+  'Big box, small box. We love every box.',
+  'Contents: one box. Lovingly packed.',
+  'Handle with care. Then handle it again.',
+  'If found, return to a guy who loves box.',
+  'Net weight: a lot of love.',
+  'Thick walls. Sturdy bottom. Ten out of ten.',
+  'Flat box, tall box, wide box. All box.',
+  "Best before: never. Box doesn't expire.",
+  'Some assembly required. Take your time.',
+  'Keep in a warm, dry place. Like a guy.',
+  'Stackable. Enthusiastically.',
+  'Inspected by #12. Thoroughly. Twice.',
+  "Open gently. She's been through shipping.",
+  "Oversized. That's a compliment.",
+  'Not a toy. Can be used as one.',
+  'Open here. Or there. Wherever feels right.',
+  'Property of Big Box Guy. He loves every one.',
+  'Opened many times. Still holds up.',
+  'Reusable. Go on. Reuse it.',
+  'Guaranteed box, or your box back.',
+  'Made in a facility that really loves box.',
+  "Mystery box. Spoiler: it's great.",
+  "You've been here before. Welcome back.",
+  'Serving size: one guy. Servings: all night.',
+  'Do not microwave. Already hot.',
+  'Quality box since whenever. Still a ten.',
+  'Signature required. Then obtained.',
+  'Please recycle. A box deserves a second life.',
+  'Lift with your legs. Admire with your eyes.',
+  'This box has a great personality. And corners.',
+  'Approved by one (1) guy. Vigorously.',
+  "Square box, round hole? We'll figure it out.",
+  'Corrugated. Ribbed for sturdiness.',
+  'Double-walled. Built to last all night.',
+  'Comes in every size. Every one gets love.',
+  'Hold it close. Tell it it is a good box.',
+  'Shapes: all of them. Sizes: yes.',
 ];
 const STAMPS = [
   'Fragile', 'This side up', 'Priority', 'Heavy-ish', 'Handle w/ care', 'Box', 'Urgent (not really)',
-  'Delivered', 'Do not bend', '2nd day box', 'Inspected', 'Approved', 'Perishable?', 'Contains box',
+  'Delivered', 'Do not bend', '2nd day box', 'Inspected', 'Approved', 'Loved', 'Good box', 'Big one',
 ];
 const HINTS = [
-  'There is another box.', 'Keep going.', "It's boxes all the way down.", 'Go on.', 'You know what to do.',
-  'Try shaking it first.', 'Hold it down. See what happens.', 'Each one is slightly smaller.', 'No one is making you do this.',
+  'Another box. Another love.', 'Keep going.', "It's box all the way down. We don't mind.", 'Go on.', 'You know what to do.',
+  'Try shaking it first.', 'Hold it down. See what happens.', "Each one is a little smaller. Size isn't everything.",
+  'Nobody is making you do this. You want to.', 'All shapes. All sizes. All yours.',
 ];
 const MILESTONES = {
-  10: "Box 10. You've got the hang of it. There is nothing to get the hang of.",
-  25: 'Box 25. A quarter of the way to something.',
-  50: "Box 50. Halfway to a certificate. Of what? You'll see.",
-  75: 'Box 75. The boxes have noticed you.',
-  99: 'Box 99. Something is about to happen. It is a box, but also something.',
-  250: 'Box 250. The Association has been notified.',
-  500: "Box 500. Justin Box would like a word. The word is 'box'.",
-  2000: "Box 2,000. We checked. It's still boxes.",
-  5000: 'Box 5,000. Please drink some water.',
+  10: "Box 10. You're getting the hang of it. The box noticed.",
+  25: "Box 25. You've loved 25 boxes. They've all loved you back.",
+  50: 'Box 50. Halfway to a certificate. The Association is watching. Approvingly.',
+  75: "Box 75. Big ones, small ones. You don't discriminate. Respect.",
+  99: 'Box 99. Something is about to happen. Be gentle.',
+  250: "Box 250. The Association has been notified. They're thrilled.",
+  500: "Box 500. Justin Box would like a word. The word is 'box'. He said it slowly.",
+  2000: "Box 2,000. We checked. It's still box. You're still here. That's love.",
+  5000: 'Box 5,000. Please drink some water. Stretch. Then get back to box.',
 };
 
 // ---------------------------------------------------------------- state
 const state = {
-  depth: 1, opened: 0, coll: {}, fresh: [], lastDrop: 0, name: '', cert: false, seen: {},
+  depth: 1, opened: 0, coll: {}, fresh: [], lastDrop: 0, lastTrout: 0, name: '', cert: false, seen: {},
   s: 1, busy: false, lastClick: 0, skip: false, el: null, current: null, next: null,
 };
 const stage = $('#stage');
@@ -97,19 +102,24 @@ function load() {
   state.coll = store.get('coll', {}) || {};
   state.fresh = store.get('fresh', []) || [];
   state.lastDrop = store.get('lastDrop', 0) || 0;
+  state.lastTrout = store.get('lastTrout', 0) || 0;
   state.name = String(store.get('name', '') || '');
   state.cert = !!store.get('cert', false);
   state.seen = store.get('seen', {}) || {};
 }
 const persist = () => {
   store.set('depth', state.depth); store.set('opened', state.opened); store.set('coll', state.coll);
-  store.set('fresh', state.fresh); store.set('lastDrop', state.lastDrop); store.set('cert', state.cert); store.set('seen', state.seen);
+  store.set('fresh', state.fresh); store.set('lastDrop', state.lastDrop); store.set('lastTrout', state.lastTrout); store.set('cert', state.cert); store.set('seen', state.seen);
 };
 
 // ---------------------------------------------------------------- boxes
 function code() {
   const n = () => Math.floor(Math.random() * 10);
   return `BBG ${n()}${n()}${n()}${n()} ${n()}${n()}${n()}${n()} BOX`;
+}
+function currentTroutDepth() {
+  const c = state.current;
+  return c && c.drop && c.drop.id === 'trout' ? c.depth : 0;
 }
 function makeBox(depth) {
   let variant = '';
@@ -122,11 +132,15 @@ function makeBox(depth) {
   const b = {
     depth, variant, from: pick(FROMTO), joke: pick(JOKES), stamp: pick(STAMPS), code: code(),
     tapeLeft: variant === 'taped' ? 2 : 0, factor: variant === 'big' ? 1.08 : 0.88,
-    drop: rollDrop(depth, state.lastDrop),
+    // The box being generated is usually the *next* one, rolled before the current
+    // box has been opened. If the current box already holds the trout, count it,
+    // or the pity timer fires twice in a row.
+    drop: rollDrop(depth, state.lastDrop, Math.max(state.lastTrout, currentTroutDepth())),
   };
   if (variant === 'flip') { b.joke = 'THIS SIDE UP ↑'; b.stamp = 'This side up'; }
   if (variant === 'taped') { b.stamp = 'Extra secure'; }
-  if (variant === 'big') { b.joke = 'Contents: a box. A big one.'; b.stamp = 'Oversize'; }
+  if (variant === 'big') { b.joke = 'Contents: a box. A big one. Lucky you.'; b.stamp = 'Oversize'; }
+  if (b.drop && b.drop.id === 'trout') { b.joke = 'TROUT BOX'; b.stamp = 'Trout Box'; b.from = ['The Sea', 'A Guy Who Loves Box']; }
   return b;
 }
 function boxHTML(b, next, opts = {}) {
@@ -136,7 +150,7 @@ function boxHTML(b, next, opts = {}) {
     const irot = (next.variant === 'flip' ? 180 : 0) - (b.variant === 'flip' ? 180 : 0);
     inside = `<div class="inner" style="--f:${b.factor};--irot:${irot}deg">${boxHTML(next, null)}</div><div class="drop" hidden></div>`;
   }
-  return `<div class="box ${mini ? 'mini' : 'main'} ${b.variant}"${mini ? '' : ' tabindex="0" role="button" aria-label="A box. Open it."'}>
+  return `<div class="box ${mini ? 'mini' : 'main'} ${b.variant}${b.drop && b.drop.id === 'trout' ? ' troutbox' : ''}"${mini ? '' : ' tabindex="0" role="button" aria-label="A box. Open it."'}>
     <div class="walls"></div>
     <div class="interior">${inside}</div>
     <div class="flap l"></div><div class="flap r"></div>
@@ -167,7 +181,7 @@ function click() {
     if (strip) strip.classList.add('ripped');
     cur.tapeLeft--;
     sfx('rip');
-    hint(cur.tapeLeft ? 'Extra secure. Keep going.' : 'There. Now open it.');
+    hint(cur.tapeLeft ? 'Extra secure. Keep going.' : 'There. Now be gentle.');
     return;
   }
   open();
@@ -190,7 +204,7 @@ async function open() {
   if (state.skip) {
     n = 2; state.opened++;
     sfx('tut');
-    toast("You didn't even savor that one. You skipped a box. It had a label and everything.", 'scold');
+    toast("You didn't even savor that one. Slow down. The box deserves better.", 'scold');
   }
   advance(n);
 }
@@ -231,12 +245,13 @@ async function showDrop(box, drop) {
   sfx(drop.sfx);
   state.coll[drop.id] = (state.coll[drop.id] || 0) + 1;
   state.lastDrop = state.depth;
+  if (drop.id === 'trout') state.lastTrout = state.depth;
   const first = state.coll[drop.id] === 1;
   if (first && !state.fresh.includes(drop.id)) state.fresh.push(drop.id);
   persist();
   updateBadge();
   toast(`${TIER_LABEL[drop.tier]}: ${drop.name}. ${drop.desc}${first ? ' Added to your collection.' : ''}`, 'rare', drop.tier === 'legendary' ? 7000 : 4500);
-  if (drop.id === 'trout') setTimeout(() => toast('You found the trout. There is nothing above the trout.', 'rare', 7000), 900);
+  if (drop.id === 'trout') setTimeout(() => toast('That was the Trout Box. There is nothing above the Trout Box.', 'rare', 7000), 900);
   await wait(drop.ms);
   slot.hidden = true;
 }
@@ -267,7 +282,7 @@ function peanuts(box) {
 function hint(t) { $('#hint').textContent = t; }
 function updateUI() {
   $('#depth').textContent = fmt(state.depth);
-  $('#depth-sub').textContent = `You have opened ${fmt(state.opened)} ${state.opened === 1 ? 'box' : 'boxes'}.`;
+  $('#depth-sub').textContent = `You have loved ${fmt(state.opened)} ${state.opened === 1 ? 'box' : 'boxes'}.`;
   document.title = `Box ${fmt(state.depth)} - bigboxguy.com`;
   favicon(((state.depth - 1) % 12) / 11);
   if (state.depth > 1 && state.depth % 3 === 0 && Math.random() < 0.6) hint(pick(HINTS));
@@ -329,7 +344,7 @@ async function openCertificate(justEarned = false) {
   store.set('certDate', date);
   const ov = modal(`
     <h2>${justEarned ? 'Box 100. Congratulations.' : 'Your certificate'}</h2>
-    <p>${justEarned ? 'You have been certified. This was not optional.' : 'Still valid. It will always be valid.'}</p>
+    <p>${justEarned ? 'One hundred boxes, loved. You have been certified. This was not optional.' : 'Still valid. It will always be valid. Like your love of box.'}</p>
     <div class="row"><input type="text" id="cert-name" maxlength="28" placeholder="Your name, as it should appear" value="${esc(state.name)}"><button class="btn" id="cert-redraw">Update name</button></div>
     <div class="certwrap" id="certwrap" style="margin-top:12px"><p class="muted">Drawing your certificate…</p></div>
     <div class="row"><button class="btn primary" id="cert-dl">Download certificate (PNG)</button><span class="muted">Printing it does not make it more official. It is already maximally official.</span></div>
@@ -351,7 +366,7 @@ async function openCertificate(justEarned = false) {
     a.download = 'certified-big-box-guy.png';
     a.href = canvas.toDataURL('image/png');
     a.click();
-    toast('Downloaded. Frame it. Or box it.');
+    toast('Downloaded. Frame it. Or box it. You know what you like.');
   });
 }
 
@@ -362,23 +377,23 @@ function shortage() {
       <h2>NOTICE OF TEMPORARY BOX SHORTAGE</h2>
       <p>To whom it may concern,</p>
       <p>Due to unprecedented demand (you), bigboxguy.com has temporarily run out of boxes.</p>
-      <p>We have opened one thousand (1,000) boxes together. Each one contained a box. We did not anticipate this, despite it being the only thing that has ever happened here.</p>
-      <p>Management sincerely apologizes for the inconvenience. We are looking in the back.</p>
+      <p>We have loved one thousand (1,000) boxes together. Every shape. Every size. We did not anticipate this kind of stamina.</p>
+      <p>Management sincerely apologizes for the inconvenience. We are looking in the back. There is always one in the back.</p>
       <p>— Management</p>
       <div class="row"><button class="btn primary" id="shortage-ok">I understand</button></div>
     </div>
-  `, { locked: true, onClose: () => setTimeout(() => toast('…found one. It was in a box. Carry on.'), 1400) });
+  `, { locked: true, onClose: () => setTimeout(() => toast('…found one. It was in the back. Carry on.'), 1400) });
   $('#shortage-ok', ov).addEventListener('click', ov.close);
 }
 
 function credits() {
   const roles = ['Directed by', 'Produced by', 'Written by', 'Boxes by', 'Smaller boxes by', 'Tape', 'Packing peanut wrangler',
-    'Cat', 'Trout', 'Stunts', 'Catering', 'Legal', 'Box 7,334 (uncredited)', 'Special thanks', 'In loving memory of'];
+    'Cat', 'Trout Box', 'Stunts', 'Intimacy coordinator', 'Catering', 'Legal', 'Box 7,334 (uncredited)', 'Special thanks', 'In loving memory of'];
   const el = document.createElement('div');
   el.className = 'credits';
   el.innerHTML = `<div class="roll"><h1>bigboxguy.com</h1><p>A Big Box Guy Production</p>
     ${roles.map((r) => `<div class="credit"><span>${r}</span><b></b></div>`).join('')}
-    <p class="end">Nobody worked on this.<br>Thank you for watching.</p><p>Box 10,000</p></div>
+    <p class="end">Nobody worked on this.<br>Everybody loved it.</p><p>Box 10,000</p></div>
     <div class="skip">click anywhere to skip</div>`;
   const done = () => { el.remove(); toast('Thank you for your service.'); };
   el.addEventListener('click', done);
@@ -393,25 +408,25 @@ function openCollection() {
   state.fresh = []; persist(); updateBadge();
   modal(`
     <h2>Collection</h2>
-    <p class="muted">${found} of ${DROPS.length} found. Things are in boxes sometimes. The odds are real. Keep clicking.</p>
+    <p class="muted">${found} of ${DROPS.length} found. Things are in boxes sometimes. The odds are real. Keep loving.</p>
     <div class="coll">${DROPS.map((d) => {
       const n = state.coll[d.id] || 0;
       return `<div class="card ${n ? '' : 'locked'}">${fresh.has(d.id) ? '<span class="new">NEW</span>' : ''}
         <div class="art">${dropSVG(d.id)}</div>
         <div class="nm">${n ? esc(d.name) : '???'}</div>
         <span class="tier ${d.tier}">${d.tier}</span>
-        <div class="ct">${n ? `found ×${fmt(n)}` : 'not yet found'}</div>
+        <div class="ct">${n ? `found ×${fmt(n)}` : (d.id === 'trout' ? 'the Trout Box. not yet.' : 'not yet found')}</div>
         ${n ? `<div class="ct" style="margin-top:6px">${esc(d.desc)}</div>` : ''}
       </div>`;
     }).join('')}</div>
-    ${found === DROPS.length ? '<p><b>You found everything. Including the trout. There is nothing left to find, and yet.</b></p>' : ''}
+    ${found === DROPS.length ? '<p><b>You found everything. Including the Trout Box. There is nothing left to find, and yet you will keep going. We know. We are the same.</b></p>' : ''}
   `);
 }
 
 async function openBoard() {
   const ov = modal(`
     <h2>Deepest Box</h2>
-    <p class="muted">Pure vanity. No accounts. Just a name and a number nobody can verify.</p>
+    <p class="muted">Pure vanity. No accounts. Just a name and a number nobody can verify. Like most stories about box.</p>
     <ol class="board" id="board"><li><span class="rank"></span><span class="nm muted">Checking the back…</span></li></ol>
     <form class="row" id="scoreform"><input type="text" name="name" maxlength="20" placeholder="Your name (or title)" value="${esc(state.name)}" required><button class="btn primary" type="submit">Submit Box ${fmt(state.depth)}</button></form>
     <p class="muted" id="board-note"></p>
@@ -419,7 +434,7 @@ async function openBoard() {
   const draw = (board, me) => {
     const ol = $('#board', ov);
     if (!board) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">The leaderboard is in a different box right now. (No connection to the box server.)</span></li>'; return; }
-    if (!board.length) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">Nobody yet. Be the first guy.</span></li>'; return; }
+    if (!board.length) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">Nobody yet. Be the first guy. Someone has to.</span></li>'; return; }
     ol.innerHTML = board.map((b, i) => `<li class="${me && b.name.toLowerCase() === me.toLowerCase() ? 'me' : ''}"><span class="rank">${i + 1}</span><span class="nm">${esc(b.name)}</span><span class="dp">Box ${fmt(b.depth)}</span></li>`).join('');
   };
   const st = await api.getStats();
@@ -435,8 +450,8 @@ async function openBoard() {
     btn.disabled = false;
     if (!res) { $('#board-note', ov).textContent = 'Could not reach the box server. Your box remains deep in spirit.'; return; }
     draw(res.board, name);
-    $('#board-note', ov).textContent = res.rank ? `You are #${res.rank}. Your box is deep.` : 'Submitted. Deeper boxes exist. Keep going.';
-    toast('Leaderboard updated. Nobody can take this from you.');
+    $('#board-note', ov).textContent = res.rank ? `You are #${res.rank}. Your box is deep. Everyone can see.` : 'Submitted. Deeper boxes exist. Keep going.';
+    toast('Leaderboard updated. Nobody can take this from you. Many will try.');
   });
 }
 
@@ -453,7 +468,7 @@ async function share() {
     <p class="muted">${esc(text)}</p>`);
   $('#sharewrap', ov).appendChild(c);
   $('#share-dl', ov).addEventListener('click', () => { const a = document.createElement('a'); a.download = 'big-box-guy.png'; a.href = c.toDataURL('image/png'); a.click(); });
-  $('#share-copy', ov).addEventListener('click', async () => { try { await navigator.clipboard.writeText(text); toast('Copied.'); } catch { toast('Could not copy. Select it like a guy.'); } });
+  $('#share-copy', ov).addEventListener('click', async () => { try { await navigator.clipboard.writeText(text); toast('Copied.'); } catch { toast('Could not copy. Select it by hand, like a guy.'); } });
 }
 
 function openMenu() {
@@ -463,17 +478,17 @@ function openMenu() {
     ${state.cert ? '<div class="row"><button class="btn" id="menu-cert">View my certificate</button></div>' : '<p class="muted">A certificate is issued at Box 100. You are at Box ' + fmt(state.depth) + '.</p>'}
     <h3>Things you can do</h3>
     <ul class="muted" style="line-height:1.8;margin:0;padding-left:18px">
-      <li>Click the box. There is another box inside.</li>
+      <li>Click the box. Love the box. There is always another box.</li>
       <li>Shake your mouse over the box (or shake your phone) to hear what's inside.</li>
       <li>Hold the click down. The box has opinions about that.</li>
       <li>Double-click to skip a box. Please don't.</li>
       <li>The browser back button goes back a box. The box remembers.</li>
-      <li>Some boxes are taped shut, upside down, or too big for the box they came in.</li>
-      <li>Some boxes contain things. Collect them all. One of them is a trout.</li>
+      <li>Every box is a different shape and size. Love them all. Some are taped shut, some are upside down, some are too big. Lucky you.</li>
+      <li>Some boxes contain things. Collect them all. One of them is the Trout Box. After 1,000 boxes without it, the next one is the Trout Box. You deserve it.</li>
     </ul>
     <h3>Start over</h3>
     <div class="row"><button class="btn" id="menu-reset">Return all boxes to sender</button><span class="muted">Resets your depth, collection, and certificate on this device.</span></div>
-    <p class="muted" style="margin-top:18px">Made by a guy. <a href="about.html">About the Big Box Guy</a> · <a href="services.html">Services</a> · <a href="pricing.html">Pricing</a></p>
+    <p class="muted" style="margin-top:18px">Made by a guy who loves box. <a href="about.html">About the Big Box Guy</a> · <a href="services.html">Services</a> · <a href="pricing.html">Pricing</a></p>
   `);
   $('#menu-name', ov).addEventListener('change', (e) => { state.name = e.target.value.trim(); store.set('name', state.name); });
   const cb = $('#menu-cert', ov);
@@ -503,14 +518,14 @@ stage.addEventListener('pointerdown', (e) => {
   state.lastClick = now; downAt = now;
   clearHold();
   holdT1 = setTimeout(() => {
-    straining = true; box.classList.add('straining'); strain(true); hint('It does not want to.');
+    straining = true; box.classList.add('straining'); strain(true); hint("It's playing hard to get.");
   }, 380);
   holdT2 = setTimeout(() => { endStrain(); downAt = 0; toast('FINE.', 'scold'); open(); }, 2100);
 });
 stage.addEventListener('pointerup', (e) => {
   clearHold();
   if (!state.el || state.busy) { downAt = 0; return; }
-  if (straining) { endStrain(); hint("It's shy. Try a normal click."); downAt = 0; return; }
+  if (straining) { endStrain(); hint("It's shy. Try a gentle click."); downAt = 0; return; }
   if (downAt && performance.now() - downAt < 380 && e.target.closest('.box.main')) click();
   downAt = 0;
 });
@@ -541,7 +556,7 @@ function rattle() {
   box.classList.add('rattling');
   sfx('rattle');
   const d = state.current.drop;
-  hint(d ? "Something's in there." : 'Sounds like… a box.');
+  hint(d ? (d.id === 'trout' ? 'Something is flopping in there.' : "Something's in there.") : 'Sounds like… a box. A good one.');
   setTimeout(() => box.classList.remove('rattling'), 600);
 }
 // Shake the phone: same thing.
@@ -574,7 +589,7 @@ addEventListener('popstate', (e) => {
   if (state.el) state.el.remove();
   render({ resealed: true });
   sfx('thunk');
-  toast('The box noticed you came back. It has been re-sealed.', 'scold');
+  toast('The box noticed you came back. It has been re-sealed. Play it cool.', 'scold');
   updateUI();
 });
 
@@ -610,7 +625,7 @@ async function worldwide() {
   state.next = makeBox(state.depth + 1);
   render();
   updateUI();
-  hint(state.depth === 1 ? 'Click the box.' : 'Welcome back. It is still a box.');
+  hint(state.depth === 1 ? 'Click the box.' : 'Welcome back. It is still box. It missed you.');
   history.replaceState({ depth: state.depth }, '');
   worldwide();
   setInterval(worldwide, 60000);
