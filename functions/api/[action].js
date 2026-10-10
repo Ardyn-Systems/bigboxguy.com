@@ -31,19 +31,25 @@ async function d1Init(db, kv) {
     db.prepare('CREATE TABLE IF NOT EXISTS counters (k TEXT PRIMARY KEY, v INTEGER NOT NULL)'),
     db.prepare('CREATE TABLE IF NOT EXISTS board (name_key TEXT PRIMARY KEY, name TEXT NOT NULL, depth INTEGER NOT NULL, t INTEGER NOT NULL)'),
   ]);
-  const row = await db.prepare("SELECT v FROM counters WHERE k = 'total'").first();
-  if (!row) {
-    // First run: carry over whatever KV had so nobody loses their box.
-    let total = 0, board = [];
-    if (kv) {
+  await db.prepare("INSERT OR IGNORE INTO counters (k, v) VALUES ('total', 0)").run();
+  // One-time carry-over from KV so nobody loses their box. Keyed on its own
+  // marker, because an environment without the KV binding (Preview) may have
+  // initialised the shared database first.
+  if (kv) {
+    const done = await db.prepare("SELECT v FROM counters WHERE k = 'migrated_kv'").first();
+    if (!done) {
+      let total = 0, board = [];
       try { total = parseInt((await kv.get('total')) || '0', 10) || 0; } catch {}
       try { board = (await kv.get('board', 'json')) || []; } catch {}
-    }
-    await db.prepare("INSERT OR IGNORE INTO counters (k, v) VALUES ('total', ?)").bind(total).run();
-    for (const b of board) {
-      const name = cleanName(b.name);
-      await db.prepare('INSERT OR IGNORE INTO board (name_key, name, depth, t) VALUES (?, ?, ?, ?)')
-        .bind(name.toLowerCase(), name, clampInt(b.depth, 1, MAX_DEPTH), Number(b.t) || Date.now()).run();
+      await db.prepare("UPDATE counters SET v = v + ? WHERE k = 'total'").bind(total).run();
+      for (const b of board) {
+        const name = cleanName(b.name);
+        await db.prepare(
+          'INSERT INTO board (name_key, name, depth, t) VALUES (?, ?, ?, ?) ' +
+          'ON CONFLICT(name_key) DO UPDATE SET depth = excluded.depth, t = excluded.t WHERE excluded.depth > board.depth',
+        ).bind(name.toLowerCase(), name, clampInt(b.depth, 1, MAX_DEPTH), Number(b.t) || Date.now()).run();
+      }
+      await db.prepare("INSERT OR IGNORE INTO counters (k, v) VALUES ('migrated_kv', 1)").run();
     }
   }
   d1Ready = true;
