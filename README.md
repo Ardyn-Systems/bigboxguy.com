@@ -6,15 +6,16 @@ Live at **https://bigboxguy.com** (Cloudflare Pages project `bigboxguy-com`,
 also reachable at https://bigboxguy-com.pages.dev).
 
 Plain static HTML/CSS/JS with no build step, plus one small Cloudflare Pages
-Function for the worldwide counter and leaderboard. The site works fully
+Function for the worldwide counter and the Leaderbox (leaderboard). The site works fully
 without the function; those two features just hide themselves.
 
 ## What's in the box
 
 - **The loop.** Flaps fold open with a cardboard fwump and a burst of packing
-  peanuts. Each box is slightly smaller than the last (4% a box, floor about
-  64%). After twelve the page leans in and resets. The current label is also
-  echoed in plain text under the box so it stays readable at any size.
+  peanuts. Open a box, there is another box. It is drawn a touch smaller
+  inside the old one and grows to full size as it is lifted out; boxes do
+  not shrink over time. The current label is also echoed in plain text under
+  the box.
 - **Labels.** Every box has a shipping label with a different joke and a stamp.
   The voice is a guy who loves box, every shape and size, and "box" is the
   double entendre you think it is. Innuendo, never explicit. Keep new copy in
@@ -64,7 +65,7 @@ without the function; those two features just hide themselves.
   rattles. Hold the click and it resists. Double-click to skip a box and get
   scolded. The browser back button re-seals the previous box.
 - **Social.** Share button renders an image ("I have loved N boxes. Every
-  shape. Every size."). Worldwide counter and a Deepest Box leaderboard.
+  shape. Every size."). Worldwide counter and the Leaderbox (the leaderboard, Deepest Box).
 - **Touches.** The box counter sits top right in the header, the tab title
   shows your depth, the favicon opens as you go, the 404 page is an empty box, and the About / Services / Pricing pages are
   very serious.
@@ -86,6 +87,9 @@ js/cert.js            The certificate (canvas → PNG)
 js/share.js           The share image (canvas → PNG / Web Share)
 js/api.js             Client for the counter + leaderboard, fails quietly offline
 functions/api/[action].js   Cloudflare Pages Function (D1 binding DB; KV BOXES as fallback)
+_headers              Pages headers: scripts and styles revalidate on every load
+                      (script/style URLs also carry a ?v= query; bump it only
+                      if you ever need to force every browser past its cache)
 img/                  Mascot, favicon, social preview image
 ```
 

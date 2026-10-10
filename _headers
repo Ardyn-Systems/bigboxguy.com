@@ -1,0 +1,9 @@
+# Cloudflare Pages headers.
+# The HTML is never cached, but Pages gives scripts and styles a four-hour
+# browser cache by default. After a deploy that leaves phones running the new
+# page with the old script, which once broke the box loop until a refresh.
+# Make them revalidate on every load (ETags keep it cheap).
+/js/*
+  Cache-Control: public, max-age=0, must-revalidate
+/css/*
+  Cache-Control: public, max-age=0, must-revalidate
