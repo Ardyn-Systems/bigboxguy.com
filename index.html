@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Box 1 - bigboxguy.com</title>
+<meta name="description" content="A big box. Click it. There is another box inside. Keep going.">
+<meta property="og:title" content="Big Box Guy">
+<meta property="og:description" content="A big box. Click it. There is another box inside. Keep going.">
+<meta property="og:image" content="https://bigboxguy.com/img/og.png">
+<meta property="og:url" content="https://bigboxguy.com/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#c99b5e">
+<link rel="icon" id="favicon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Homemade+Apple&family=Rubik:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><img src="img/guy.svg" alt="">BIG BOX GUY</a>
+  <nav>
+    <a href="about.html">About</a>
+    <a href="services.html">Services</a>
+    <a href="pricing.html">Pricing</a>
+  </nav>
+  <div class="tools">
+    <button id="btn-collection" class="tool">Collection <span id="coll-badge" class="badge" hidden>0</span></button>
+    <button id="btn-board" class="tool">Leaderboard</button>
+    <button id="btn-share" class="tool">Share</button>
+    <button id="btn-sound" class="tool" aria-pressed="true">Sound</button>
+    <button id="btn-menu" class="tool" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<main>
+  <div class="counter">
+    <div class="depth">Box <span id="depth">1</span></div>
+    <div class="sub" id="depth-sub">You have opened 0 boxes.</div>
+  </div>
+  <div id="stage" class="stage" aria-live="polite"></div>
+  <p class="hint" id="hint">Click the box.</p>
+</main>
+
+<footer class="bottom">
+  <span id="global">Counting boxes worldwide…</span>
+  <span>·</span>
+  <span>bigboxguy.com, est. in a box</span>
+</footer>
+
+<div id="toasts" aria-live="polite"></div>
+<div id="peanuts" aria-hidden="true"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
