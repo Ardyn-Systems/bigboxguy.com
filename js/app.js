@@ -12,8 +12,9 @@ const fmt = (n) => Number(n).toLocaleString('en-US');
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const today = () => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-// Each box is a little smaller than the last. Twelve of these before the lean-in, so the floor is ~64%.
-const SHRINK = 0.96;
+// Boxes do not shrink. The box inside is drawn a touch smaller so it visibly sits
+// inside, then grows to full size as it is lifted out. Oversize boxes start bigger.
+const PREVIEW = 0.9;
 const store = {
   get(k, d) { try { const v = localStorage.getItem('bbg.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('bbg.' + k, JSON.stringify(v)); } catch {} },
@@ -89,7 +90,7 @@ const STAMPS = [
 const HINTS = [
   'Another box. Another love.', 'Keep going.', "It's box all the way down. We don't mind.", 'Go on. She wants you to.',
   'You know what to do.', 'Try shaking it first. Gently.', 'Hold it down. See what happens.',
-  "Each one is a little smaller. Size isn't everything.", 'Nobody is making you do this. You want to.',
+  'There is another one. There is always another one.', 'Nobody is making you do this. You want to.',
   'All shapes. All sizes. All yours.', 'Get in there.', 'Two hands. Take your time.',
 ];
 const MILESTONES = {
@@ -150,7 +151,7 @@ function makeBox(depth) {
   }
   const b = {
     depth, variant, from: pick(FROMTO), joke: pick(JOKES), stamp: pick(STAMPS), code: code(),
-    tapeLeft: variant === 'taped' ? 2 : 0, factor: variant === 'big' ? 1.08 : SHRINK,
+    tapeLeft: variant === 'taped' ? 2 : 0, factor: variant === 'big' ? 1.08 : PREVIEW,
     // The box being generated is usually the *next* one, rolled before the current
     // box has been opened. If the current box already holds the trout, count it,
     // or the pity timer fires twice in a row.
@@ -237,7 +238,8 @@ async function open() {
 function advance(n) {
   const old = state.el, cur = state.current;
   state.depth += n;
-  state.s = state.s * cur.factor * (n === 2 ? SHRINK : 1);
+  // The new box starts at the size it had inside the old one, then settles to full size.
+  state.s = cur.factor;
   state.current = n === 1 ? state.next : makeBox(state.depth);
   state.next = makeBox(state.depth + 1);
   persist();
@@ -245,17 +247,17 @@ function advance(n) {
   old.classList.add('spent');
   setTimeout(() => old.remove(), 500);
   render();
-  const zoom = state.depth > 1 && (state.depth - 1) % 12 === 0;
-  if (zoom) {
-    const el = state.el;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+  {
+    // A timer, not requestAnimationFrame: rAF pauses in background tabs and
+    // would leave the box stuck at preview size if the player switched away.
+    const el = state.el, fromBig = cur.factor > 1;
+    setTimeout(() => {
       el.classList.add('zooming');
       state.s = 1;
       el.style.setProperty('--s', 1);
-      sfx('whoosh');
-      hint('Lean in.');
-      setTimeout(() => el.classList.remove('zooming'), 1000);
-    }));
+      if (fromBig) { sfx('whoosh'); hint('That one barely fit.'); }
+      setTimeout(() => el.classList.remove('zooming'), 700);
+    }, 30);
   }
   updateUI();
   api.queueOpen(n);
@@ -458,7 +460,8 @@ function openCollection() {
 async function openBoard() {
   let refresh = 0;
   const ov = modal(`
-    <h2>Deepest Box</h2>
+    <h2>Leaderbox</h2>
+    <p class="muted" style="margin-top:-4px">Deepest box wins.</p>
     <p class="muted">Pure vanity. No accounts. Just a name and a number nobody can verify. Like every story a guy has ever told about box.</p>
     <ol class="board" id="board"><li><span class="rank"></span><span class="nm muted">Checking the back…</span></li></ol>
     <form class="row" id="scoreform"><input type="text" name="name" maxlength="20" placeholder="Your name (or title)" value="${esc(state.name)}" required><button class="btn primary" type="submit">Submit Box ${fmt(state.depth)}</button></form>
@@ -466,7 +469,7 @@ async function openBoard() {
   `, { onClose: () => clearInterval(refresh) });
   const draw = (board, me) => {
     const ol = $('#board', ov);
-    if (!board) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">The leaderboard is in a different box right now. (No connection to the box server.)</span></li>'; return; }
+    if (!board) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">The Leaderbox is in a different box right now. (No connection to the box server.)</span></li>'; return; }
     if (!board.length) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">Nobody yet. Be the first guy. Someone has to.</span></li>'; return; }
     ol.innerHTML = board.map((b, i) => `<li class="${me && b.name.toLowerCase() === me.toLowerCase() ? 'me' : ''}"><span class="rank">${i + 1}</span><span class="nm">${esc(b.name)}</span><span class="dp">Box ${fmt(b.depth)}</span></li>`).join('');
   };
@@ -490,7 +493,7 @@ async function openBoard() {
     if (!res) { $('#board-note', ov).textContent = 'Could not reach the box server. Your box remains deep in spirit.'; return; }
     draw(res.board, name);
     $('#board-note', ov).textContent = res.rank ? `You are #${res.rank}. You went deep. Everyone can see.` : 'Submitted. Deeper boxes exist. Keep going.';
-    toast('Leaderboard updated. Nobody can take this from you. Many will try.');
+    toast('Leaderbox updated. Nobody can take this from you. Many will try.');
   });
 }
 
@@ -514,7 +517,7 @@ function openMenu() {
   const ov = modal(`
     <h2>Big Box Guy</h2>
     <p class="muted">You are on Box ${fmt(state.depth)}. You have loved ${fmt(state.opened)} ${state.opened === 1 ? 'box' : 'boxes'}.</p>
-    <div class="row"><label style="flex:1">Your name<br><input type="text" id="menu-name" maxlength="28" value="${esc(state.name)}" placeholder="For the certificate and leaderboard" style="width:100%;margin-top:4px"></label></div>
+    <div class="row"><label style="flex:1">Your name<br><input type="text" id="menu-name" maxlength="28" value="${esc(state.name)}" placeholder="For the certificate and the Leaderbox" style="width:100%;margin-top:4px"></label></div>
     ${(() => {
       const have = CERT_TIERS.filter((t) => state.certs[t.at]);
       const next = CERT_TIERS.find((t) => !state.certs[t.at]);
@@ -627,7 +630,7 @@ addEventListener('popstate', (e) => {
   const d = e.state && e.state.depth;
   if (!d || d >= state.depth || state.busy) { history.replaceState({ depth: state.depth }, ''); return; }
   state.depth = d;
-  state.s = Math.pow(SHRINK, (d - 1) % 12);
+  state.s = 1;
   state.current = makeBox(d);
   state.next = makeBox(d + 1);
   persist();
@@ -665,7 +668,7 @@ async function worldwide() {
     persist();
   }
   setMuted(!!store.get('muted', false)); syncSound();
-  state.s = Math.pow(SHRINK, (state.depth - 1) % 12);
+  state.s = 1;
   state.current = makeBox(state.depth);
   state.next = makeBox(state.depth + 1);
   // Testing hook: ?variant=taped|flip|big forces the first box's variant.
@@ -673,7 +676,7 @@ async function worldwide() {
   if (forced && ['taped', 'flip', 'big'].includes(forced)) {
     state.current.variant = forced;
     state.current.tapeLeft = forced === 'taped' ? 2 : 0;
-    state.current.factor = forced === 'big' ? 1.08 : SHRINK;
+    state.current.factor = forced === 'big' ? 1.08 : PREVIEW;
     history.replaceState(null, '', location.pathname);
   }
   render();
