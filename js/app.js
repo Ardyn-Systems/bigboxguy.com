@@ -1,9 +1,9 @@
 // bigboxguy.com — the box engine. A box opens. There is a box inside. Repeat.
-import { sfx, strain, setMuted, isMuted, unlock } from './audio.js';
-import { DROPS, TIER_LABEL, rollDrop, dropSVG } from './drops.js';
-import { renderCertificate, CERT_TIERS, tierAt } from './cert.js';
-import { renderShare, shareText } from './share.js';
-import * as api from './api.js';
+import { sfx, strain, setMuted, isMuted, unlock } from './audio.js?v=20261010b';
+import { DROPS, TIER_LABEL, rollDrop, dropSVG } from './drops.js?v=20261010b';
+import { renderCertificate, CERT_TIERS, tierAt } from './cert.js?v=20261010b';
+import { renderShare, shareText } from './share.js?v=20261010b';
+import * as api from './api.js?v=20261010b';
 
 const $ = (s, r = document) => r.querySelector(s);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -259,10 +259,10 @@ function advance(n) {
       setTimeout(() => el.classList.remove('zooming'), 700);
     }, 30);
   }
-  updateUI();
-  api.queueOpen(n);
   state.busy = false;
-  milestones();
+  updateUI();
+  try { api.queueOpen(n); } catch (e) { console.warn('queueOpen', e); }
+  try { milestones(); } catch (e) { console.warn('milestones', e); }
 }
 
 async function showDrop(box, drop) {
@@ -307,23 +307,30 @@ function peanuts(box) {
 }
 
 // ---------------------------------------------------------------- ui
-function hint(t) { $('#hint').textContent = t; }
+function hint(t) { setText('#hint', t); }
+// Everything here is cosmetic. Nothing in it may throw: a stale cached script
+// against a newer page once crashed this on every open and jammed the box.
+function setText(sel, text) { const el = $(sel); if (el) el.textContent = text; }
 function updateUI() {
-  $('#depth').textContent = fmt(state.depth);
-  document.title = `Box ${fmt(state.depth)} - bigboxguy.com`;
-  favicon(((state.depth - 1) % 12) / 11);
-  if (state.depth > 1 && state.depth % 3 === 0 && Math.random() < 0.6) hint(pick(HINTS));
-  updateBadge();
+  try {
+    setText('#depth', fmt(state.depth));
+    document.title = `Box ${fmt(state.depth)} - bigboxguy.com`;
+    favicon(((state.depth - 1) % 12) / 11);
+    if (state.depth > 1 && state.depth % 3 === 0 && Math.random() < 0.6) hint(pick(HINTS));
+    updateBadge();
+  } catch (e) { console.warn('updateUI', e); }
 }
 function updateBadge() {
   const b = $('#coll-badge');
+  if (!b) return;
   b.textContent = state.fresh.length;
   b.hidden = state.fresh.length === 0;
 }
 function favicon(p) {
   const fh = 22 * (1 - p);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="4" y="4" width="56" height="56" rx="7" fill="#8a6130"/><rect x="10" y="10" width="44" height="44" fill="#2a1a09"/><rect x="22" y="22" width="20" height="20" fill="#c99b5e" opacity="${p > 0.1 ? 1 : 0}"/><rect x="10" y="10" width="44" height="${fh}" fill="#c99b5e"/><rect x="10" y="${54 - fh}" width="44" height="${fh}" fill="#c99b5e"/><rect x="29" y="10" width="6" height="44" fill="#f6e5ac" opacity="${p < 0.05 ? 0.95 : 0}"/></svg>`;
-  $('#favicon').href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+  const link = $('#favicon');
+  if (link) link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
 let toastCount = 0;

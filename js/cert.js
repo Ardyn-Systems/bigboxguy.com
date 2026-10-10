@@ -1,5 +1,5 @@
 // The certificates. Issued by the Association of Guys who love Box. Maximally official.
-import { drawBox } from './draw.js';
+import { drawBox } from './draw.js?v=20261010b';
 
 // Each tier: the box count that earns it, and the wording. Higher is better.
 export const CERT_TIERS = [

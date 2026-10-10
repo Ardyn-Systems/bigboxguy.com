@@ -87,6 +87,9 @@ js/cert.js            The certificate (canvas → PNG)
 js/share.js           The share image (canvas → PNG / Web Share)
 js/api.js             Client for the counter + leaderboard, fails quietly offline
 functions/api/[action].js   Cloudflare Pages Function (D1 binding DB; KV BOXES as fallback)
+_headers              Pages headers: scripts and styles revalidate on every load
+                      (script/style URLs also carry a ?v= query; bump it only
+                      if you ever need to force every browser past its cache)
 img/                  Mascot, favicon, social preview image
 ```
 
