@@ -6,19 +6,19 @@ export const TIER_LABEL = {
 
 export const DROPS = [
   { id: 'peanut',  name: 'Packing Peanut',      tier: 'common',    odds: 1 / 9,   sfx: 'paper', ms: 1800,
-    desc: 'A single packing peanut. It got around.' },
+    desc: "A single packing peanut. It got around. Everyone's had it." },
   { id: 'bubble',  name: 'One Bubble of Wrap',  tier: 'common',    odds: 1 / 14,  sfx: 'pop',   ms: 1400,
-    desc: "Already popped. Someone couldn't wait." },
+    desc: "Already popped. Someone couldn't wait. Happens to the best of us." },
   { id: 'receipt', name: 'Receipt for $0.00',   tier: 'uncommon',  odds: 1 / 26,  sfx: 'paper', ms: 2000,
-    desc: 'The box was free. The love was priceless. Keep it for your records.' },
+    desc: 'The box was free. The love was priceless. Keep it. She might ask.' },
   { id: 'manual',  name: 'Instruction Manual',  tier: 'uncommon',  odds: 1 / 34,  sfx: 'paper', ms: 2000,
-    desc: "Page 1 of 1. The page is blank. You'll figure it out. You always do." },
+    desc: "Page 1 of 1. The page is blank. Nobody reads the manual. You find your own way in." },
   { id: 'cat',     name: 'Cat',                 tier: 'rare',      odds: 1 / 65,  sfx: 'meow',  ms: 2100,
-    desc: 'It has already moved into the next box. Cats know a good box.' },
+    desc: 'It has already moved into the next box. Cats love a warm, tight box. Who doesn\'t.' },
   { id: 'guy',     name: 'Smaller Big Box Guy', tier: 'epic',      odds: 1 / 160, sfx: 'hi',    ms: 2400,
-    desc: 'He waved. Then he left, to go love a box of his own.' },
+    desc: 'He waved. Then he left, to go love a box of his own. All night, probably.' },
   { id: 'trout',   name: 'Trout',               tier: 'legendary', odds: 1 / 500, sfx: 'flop',  ms: 2600,
-    desc: "A trout. In a box. It's a fish. It's in a box. Nobody is judging." },
+    desc: "A trout. In a box. It's wet. It's in there. It smells like the sea. Nobody is judging." },
 ];
 
 export const byId = Object.fromEntries(DROPS.map((d) => [d.id, d]));

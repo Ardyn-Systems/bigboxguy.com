@@ -31,15 +31,12 @@
     <button id="btn-share" class="tool">Share</button>
     <button id="btn-sound" class="tool" aria-pressed="true">Sound</button>
     <button id="btn-menu" class="tool" aria-label="Menu">☰</button>
+    <div class="depth" aria-live="polite" title="The box you are on">Box <span id="depth">1</span></div>
   </div>
 </header>
 
 <main>
-  <div class="counter">
-    <div class="depth">Box <span id="depth">1</span></div>
-    <div class="sub" id="depth-sub">You have opened 0 boxes.</div>
-  </div>
-  <div id="stage" class="stage" aria-live="polite"></div>
+  <div id="stage" class="stage"></div>
   <p class="hint" id="hint">Click the box.</p>
 </main>
 
