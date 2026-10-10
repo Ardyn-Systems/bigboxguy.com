@@ -12,6 +12,8 @@ const fmt = (n) => Number(n).toLocaleString('en-US');
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const today = () => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+// Each box is a little smaller than the last. Twelve of these before the lean-in, so the floor is ~64%.
+const SHRINK = 0.96;
 const store = {
   get(k, d) { try { const v = localStorage.getItem('bbg.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('bbg.' + k, JSON.stringify(v)); } catch {} },
@@ -148,7 +150,7 @@ function makeBox(depth) {
   }
   const b = {
     depth, variant, from: pick(FROMTO), joke: pick(JOKES), stamp: pick(STAMPS), code: code(),
-    tapeLeft: variant === 'taped' ? 2 : 0, factor: variant === 'big' ? 1.08 : 0.88,
+    tapeLeft: variant === 'taped' ? 2 : 0, factor: variant === 'big' ? 1.08 : SHRINK,
     // The box being generated is usually the *next* one, rolled before the current
     // box has been opened. If the current box already holds the trout, count it,
     // or the pity timer fires twice in a row.
@@ -188,6 +190,13 @@ function render(opts = {}) {
   box.style.setProperty('--rot', state.current.variant === 'flip' ? '180deg' : '0deg');
   state.el = box;
   if (hadFocus) box.focus({ preventScroll: true });
+  echo(state.current);
+}
+// The label on the cardboard is texture. This copy is for reading.
+function echo(b) {
+  const el = $('#echo');
+  if (!el) return;
+  el.innerHTML = `<span class="ej">${esc(b.joke)}</span><span class="ef">From ${esc(b.from[0])} · To ${esc(b.from[1])}${b.variant === 'taped' ? ' · taped shut' : b.variant === 'flip' ? ' · upside down' : b.variant === 'big' ? ' · oversize inside' : ''}</span>`;
 }
 
 // ---------------------------------------------------------------- opening
@@ -228,7 +237,7 @@ async function open() {
 function advance(n) {
   const old = state.el, cur = state.current;
   state.depth += n;
-  state.s = state.s * cur.factor * (n === 2 ? 0.88 : 1);
+  state.s = state.s * cur.factor * (n === 2 ? SHRINK : 1);
   state.current = n === 1 ? state.next : makeBox(state.depth);
   state.next = makeBox(state.depth + 1);
   persist();
@@ -618,7 +627,7 @@ addEventListener('popstate', (e) => {
   const d = e.state && e.state.depth;
   if (!d || d >= state.depth || state.busy) { history.replaceState({ depth: state.depth }, ''); return; }
   state.depth = d;
-  state.s = Math.pow(0.88, (d - 1) % 12);
+  state.s = Math.pow(SHRINK, (d - 1) % 12);
   state.current = makeBox(d);
   state.next = makeBox(d + 1);
   persist();
@@ -656,7 +665,7 @@ async function worldwide() {
     persist();
   }
   setMuted(!!store.get('muted', false)); syncSound();
-  state.s = Math.pow(0.88, (state.depth - 1) % 12);
+  state.s = Math.pow(SHRINK, (state.depth - 1) % 12);
   state.current = makeBox(state.depth);
   state.next = makeBox(state.depth + 1);
   // Testing hook: ?variant=taped|flip|big forces the first box's variant.
@@ -664,7 +673,7 @@ async function worldwide() {
   if (forced && ['taped', 'flip', 'big'].includes(forced)) {
     state.current.variant = forced;
     state.current.tapeLeft = forced === 'taped' ? 2 : 0;
-    state.current.factor = forced === 'big' ? 1.08 : 0.88;
+    state.current.factor = forced === 'big' ? 1.08 : SHRINK;
     history.replaceState(null, '', location.pathname);
   }
   render();

@@ -47,9 +47,12 @@ nav a:hover,nav a[aria-current]{opacity:1;text-decoration:underline;text-decorat
 .badge{position:absolute;top:-8px;right:-8px;background:var(--red);color:#fff;font-size:10px;border-radius:10px;padding:2px 6px;font-weight:700}
 .badge[hidden]{display:none}
 
-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;padding:22px 16px 30px}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:22px 16px 30px}
 .depth{font-family:var(--marker);font-size:clamp(20px,2.6vw,28px);line-height:1;padding:4px 2px 4px 12px;margin-left:6px;
   border-left:2px dashed var(--kraft-dark);white-space:nowrap}
+.echo{margin:0;text-align:center;max-width:min(92vw,560px);line-height:1.3}
+.echo .ej{display:block;font-family:var(--marker);font-size:clamp(17px,2.4vw,22px);color:var(--ink)}
+.echo .ef{display:block;font-size:13px;color:var(--ink-soft);margin-top:4px}
 .hint{color:var(--ink-soft);font-size:14px;min-height:20px;margin:0;text-align:center}
 .bottom{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:12px;font-size:13px;color:var(--ink-soft);border-top:2px dashed var(--kraft-dark)}
 
@@ -126,15 +129,15 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 .xtape.ripped{opacity:0;transform:translateY(-50%) rotate(var(--xr)) translateX(40%) scaleX(.6)}
 
 .label{
-  position:absolute;left:9%;top:11%;width:56%;background:var(--label);color:#1f1a14;padding:3.5cqw 3.5cqw 3cqw;
-  font-size:3cqw;line-height:1.25;transform:rotate(-2.5deg);box-shadow:0 2px 5px rgba(0,0,0,.3);border:1px solid #d9d2c3;z-index:2
+  position:absolute;left:6%;top:8%;width:70%;background:var(--label);color:#1f1a14;padding:3cqw 3.5cqw 2.6cqw;
+  line-height:1.2;transform:rotate(-2.5deg);box-shadow:0 2px 5px rgba(0,0,0,.3);border:1px solid #d9d2c3;z-index:2
 }
-.label .ft{display:flex;justify-content:space-between;gap:1cqw;font-size:2.4cqw;text-transform:uppercase;letter-spacing:.5px;color:#555}
-.label .ft b{display:block;color:#1f1a14;font-size:2.9cqw;letter-spacing:0;text-transform:none}
-.label .joke{font-family:var(--marker);font-size:3.6cqw;margin:2cqw 0 1.5cqw;color:#1b1b2f;line-height:1.15}
-.label .barcode{height:4.5cqw;margin-top:1.2cqw;
+.label .ft{display:flex;justify-content:space-between;gap:1cqw;font-size:2cqw;text-transform:uppercase;letter-spacing:.5px;color:#666}
+.label .ft b{display:block;color:#1f1a14;font-size:2.5cqw;letter-spacing:0;text-transform:none}
+.label .joke{font-family:var(--marker);font-size:5cqw;margin:1.6cqw 0 1.4cqw;color:#1b1b2f;line-height:1.12}
+.label .barcode{height:3.2cqw;margin-top:1cqw;width:60%;
   background:repeating-linear-gradient(90deg,#222 0 2px,transparent 2px 4px,#222 4px 5px,transparent 5px 8px,#222 8px 11px,transparent 11px 13px)}
-.label .code{font-size:2.2cqw;font-family:ui-monospace,monospace;letter-spacing:1px;color:#333;margin-top:.6cqw}
+.label .code{font-size:1.9cqw;font-family:ui-monospace,monospace;letter-spacing:1px;color:#444;margin-top:.5cqw}
 .stamp{
   position:absolute;right:9%;bottom:13%;font-family:var(--marker);color:var(--red);border:.9cqw solid var(--red);
   padding:1cqw 2.4cqw;font-size:4.6cqw;transform:rotate(-8deg);opacity:.85;letter-spacing:1px;z-index:2;
@@ -150,7 +153,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 /* The Trout Box. Slightly damp. */
 .box.troutbox .flap::before{content:"";position:absolute;inset:0;pointer-events:none;
   background:radial-gradient(ellipse at 62% 70%,rgba(60,110,140,.28),transparent 55%),radial-gradient(ellipse at 30% 30%,rgba(60,110,140,.16),transparent 50%)}
-.box.troutbox .label .joke{color:#1d4f6b;font-size:5cqw;letter-spacing:1px}
+.box.troutbox .label .joke{color:#1d4f6b;font-size:6.5cqw;letter-spacing:1px}
 .box.troutbox .stamp{color:#1d4f6b;border-color:#1d4f6b}
 
 /* ---------- drops ---------- */
