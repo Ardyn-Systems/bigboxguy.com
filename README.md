@@ -1,6 +1,6 @@
 # bigboxguy.com
 
-A big box. Click it. There is another box inside. Keep going.
+A guy who loves box. All types. All shapes and sizes. Click the box.
 
 Live at **https://bigboxguy.com** (Cloudflare Pages project `bigboxguy-com`,
 also reachable at https://bigboxguy-com.pages.dev).
@@ -15,6 +15,8 @@ without the function; those two features just hide themselves.
   peanuts. Each box is slightly smaller than the last. After twelve you are
   squinting, then the page leans in and resets.
 - **Labels.** Every box has a shipping label with a different joke and a stamp.
+  The voice is a guy who loves box, every shape and size, with the innuendo
+  turned up. Keep new copy in that voice.
 - **Variants.** Some boxes are taped shut (three clicks), upside down, or
   clearly too big for the box they came in.
 - **Drops.** Sometimes there is something else in there. Each has a rarity
@@ -28,7 +30,13 @@ without the function; those two features just hide themselves.
   | Uncommon  | Instruction Manual   | 1 in 34      |
   | Rare      | Cat                  | 1 in 65      |
   | Epic      | Smaller Big Box Guy  | 1 in 160     |
-  | Legendary | Trout                | 1 in 500     |
+  | Legendary | Trout (the Trout Box) | 1 in 500    |
+
+  The box holding the trout is the **Trout Box**: its label and stamp say so
+  and the cardboard looks a little damp. **Pity timer:** after 1,000 boxes
+  without a trout, the next box is guaranteed to be the Trout Box. Smaller
+  pity rules keep the common drops flowing (a peanut by Box 7, never more
+  than 25 boxes without something).
 
 - **Milestones.** Box 100 issues a downloadable "Certified Big Box Guy"
   certificate from the Association of Guys who love Box, signed by Justin Box.
@@ -36,8 +44,8 @@ without the function; those two features just hide themselves.
 - **Interaction gags.** Shake the mouse (or your phone) over the box and it
   rattles. Hold the click and it resists. Double-click to skip a box and get
   scolded. The browser back button re-seals the previous box.
-- **Social.** Share button renders an image ("I opened N boxes and all I found
-  was this box"). Worldwide counter and a Deepest Box leaderboard.
+- **Social.** Share button renders an image ("I have loved N boxes. Every
+  shape. Every size."). Worldwide counter and a Deepest Box leaderboard.
 - **Touches.** Tab title shows your depth, the favicon opens as you go, the
   404 page is an empty box, and the About / Services / Pricing pages are
   very serious.
