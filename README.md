@@ -12,8 +12,9 @@ without the function; those two features just hide themselves.
 ## What's in the box
 
 - **The loop.** Flaps fold open with a cardboard fwump and a burst of packing
-  peanuts. Each box is slightly smaller than the last. After twelve you are
-  squinting, then the page leans in and resets.
+  peanuts. Each box is slightly smaller than the last (4% a box, floor about
+  64%). After twelve the page leans in and resets. The current label is also
+  echoed in plain text under the box so it stays readable at any size.
 - **Labels.** Every box has a shipping label with a different joke and a stamp.
   The voice is a guy who loves box, every shape and size, and "box" is the
   double entendre you think it is. Innuendo, never explicit. Keep new copy in
