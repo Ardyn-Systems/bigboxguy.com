@@ -2,6 +2,9 @@
 
 A big box. Click it. There is another box inside. Keep going.
 
+Live at **https://bigboxguy.com** (Cloudflare Pages project `bigboxguy-com`,
+also reachable at https://bigboxguy-com.pages.dev).
+
 Plain static HTML/CSS/JS with no build step, plus one small Cloudflare Pages
 Function for the worldwide counter and leaderboard. The site works fully
 without the function; those two features just hide themselves.
