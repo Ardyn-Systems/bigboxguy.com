@@ -701,7 +701,7 @@ function openMenu() {
     </ul>
     <p class="muted">Your progress saves automatically on this device and browser. A private or incognito window forgets it when closed.</p>
     <h3>Take your boxes with you</h3>
-    <p class="muted">Open this link on another phone or browser to pick up exactly where you left off: depth, collection, certificates and all.</p>
+    <p class="muted">Open this link on another phone or browser to pick up where you left off: depth, collection, certificates and all. It only ever adds: a link can never move anyone backwards, so it's safe to keep.</p>
     <div class="row"><input type="text" id="resume-out" readonly value="${esc(resumeLink())}" aria-label="Your resume link"><button class="btn" id="resume-copy">Copy link</button></div>
     <div class="row"><input type="text" id="resume-in" placeholder="Paste a resume link or code" aria-label="Resume link or code"><button class="btn" id="resume-load">Load</button></div>
     <h3>Start over</h3>
@@ -720,7 +720,7 @@ function openMenu() {
     const m = raw.match(/[?&]resume=([A-Za-z0-9_-]+)/);
     const data = decodeResume(m ? m[1] : raw);
     if (!data) { toast("That code isn't a box. Check you copied all of it.", 'scold'); return; }
-    applyResume(data, true);
+    applyResume(data);
   });
   $('#menu-reset', ov).addEventListener('click', () => {
     if (!confirm('Return all boxes to sender? This resets your depth, collection, and certificates.')) return;
@@ -876,7 +876,7 @@ function unb64u(str) { return decodeURIComponent(escape(atob(str.replace(/-/g, '
 function resumeLink() {
   const data = { v: 1, d: state.depth, o: state.opened, c: state.coll, ce: state.certs, lt: state.lastTrout, ld: state.lastDrop,
     n: state.name, dd: store.get('dailyDay', ''), st: store.get('streak', 0) };
-  return `${location.origin}/?resume=${b64u(JSON.stringify(data))}`;
+  return `https://${HOME}/?resume=${b64u(JSON.stringify(data))}`;
 }
 const int = (v, lo, hi) => { const n = Math.floor(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };
 function decodeResume(code) {
@@ -894,16 +894,44 @@ function decodeResume(code) {
       name: String(d.n || '').slice(0, 28), dailyDay: /^\d{4}-\d{2}-\d{2}$/.test(d.dd || '') ? d.dd : '', streak: int(d.st, 0, 1e5) };
   } catch { return null; }
 }
-function applyResume(r, ask) {
-  if (ask && state.depth > 1 && r.depth !== state.depth &&
-      !confirm(`Load Box ${fmt(r.depth)} from that link? It replaces Box ${fmt(state.depth)} on this device.`)) return false;
+// A resume link MERGES into this device's save and can only ever move it
+// forward: the higher box, the higher counts, every item and certificate from
+// both. Opening someone else's link, or an old link of your own, can never cost
+// you progress. (It used to replace the save after an easy-to-miss "OK".)
+function applyResume(r) {
+  const num = (k) => parseInt(store.get(k, 0), 10) || 0;
+  const coll = { ...(store.get('coll', {}) || {}) };
+  for (const k of Object.keys(r.coll)) coll[k] = Math.max(parseInt(coll[k], 10) || 0, r.coll[k]);
+  const certs = { ...r.certs, ...(store.get('certs', {}) || {}) };
+  const before = Math.max(num('depth'), state.depth);
+  const depth = Math.max(before, r.depth);
   frozen = true;
   bumpEpoch();
-  store.set('depth', r.depth); store.set('opened', r.opened); store.set('coll', r.coll); store.set('certs', r.certs);
-  store.set('lastTrout', r.lastTrout); store.set('lastDrop', r.lastDrop); store.set('name', r.name);
-  if (r.dailyDay) store.set('dailyDay', r.dailyDay);
-  store.set('streak', r.streak);
-  location.href = location.pathname;
+  store.set('depth', depth);
+  store.set('opened', Math.max(num('opened'), state.opened, r.opened));
+  store.set('coll', coll); store.set('certs', certs);
+  store.set('lastTrout', Math.max(num('lastTrout'), r.lastTrout));
+  store.set('lastDrop', Math.max(num('lastDrop'), r.lastDrop));
+  if (!store.get('name', '') && r.name) store.set('name', r.name);
+  const dd = store.get('dailyDay', '') || '';
+  if (r.dailyDay && r.dailyDay > dd) { store.set('dailyDay', r.dailyDay); store.set('streak', r.streak); }
+  else if (r.dailyDay === dd) store.set('streak', Math.max(num('streak'), r.streak));
+  try { sessionStorage.setItem('bbg.resumed', JSON.stringify({ from: before, to: depth })); } catch {}
+  location.href = location.origin + location.pathname;
+  return true;
+}
+// One home for every save. www.bigboxguy.com and bigboxguy.pages.dev each kept
+// their own separate save (browsers store per address), so a player could
+// open the "wrong" one and think progress was gone. Those addresses now carry
+// their save over to bigboxguy.com, where it merges in.
+const HOME = 'bigboxguy.com';
+function sendHome() {
+  const h = location.hostname;
+  if (h !== 'www.bigboxguy.com' && h !== 'bigboxguy.pages.dev') return false;
+  load();
+  const target = state.depth > 1 ? new URL(resumeLink()) : new URL('https://' + HOME + '/');
+  target.protocol = 'https:'; target.host = HOME;
+  location.replace(target.href);
   return true;
 }
 
@@ -1074,15 +1102,23 @@ async function worldwide() {
 
 // ---------------------------------------------------------------- go
 (function init() {
+  if (sendHome()) return;
   load();
   const q = new URL(location.href).searchParams;
   // Resume links carry a whole save from another device.
   if (q.has('resume')) {
     const r = decodeResume(q.get('resume'));
     history.replaceState(null, '', location.pathname);
-    if (r && applyResume(r, true)) return;
+    if (r && applyResume(r)) return;
     if (!r) setTimeout(() => toast("That resume link isn't a box. Check you copied all of it.", 'scold'), 400);
   }
+  try {
+    const done = JSON.parse(sessionStorage.getItem('bbg.resumed') || 'null');
+    if (done) {
+      sessionStorage.removeItem('bbg.resumed');
+      setTimeout(() => toast(done.to > done.from ? `Welcome back. Your boxes are here: Box ${fmt(done.to)}.` : `Merged. You were already further along, so you stay at Box ${fmt(done.to)}.`, 'rare', 6000), 500);
+    }
+  } catch {}
   // Testing hook: ?season=pumpkin|gift|heart|none
   if (q.has('season')) { const sq = q.get('season'); SEASON = SEASONS[sq] ? sq : ''; }
   if (q.has('depth')) {
