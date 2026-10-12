@@ -29,10 +29,14 @@ without the function; those two features just hide themselves.
   |-----------|----------------------|--------------|
   | Common    | Packing Peanut       | 1 in 9       |
   | Common    | One Bubble of Wrap   | 1 in 14      |
+  | Common    | Single Sock          | 1 in 18      |
   | Uncommon  | Receipt for $0.00    | 1 in 26      |
   | Uncommon  | Instruction Manual   | 1 in 34      |
+  | Uncommon  | Shipping Insurance Form | 1 in 40   |
   | Rare      | Cat                  | 1 in 65      |
+  | Rare      | Love Letter to Box   | 1 in 90      |
   | Epic      | Smaller Big Box Guy  | 1 in 160     |
+  | Epic      | Mimic Box            | 1 in 220     |
   | Legendary | Trout (the Trout Box) | 1 in 500    |
 
   The box holding the trout is the **Trout Box**: its label and stamp say so
@@ -63,7 +67,26 @@ without the function; those two features just hide themselves.
   Nobody is credited.
 - **Interaction gags.** Shake the mouse (or your phone) over the box and it
   rattles. Hold the click and it resists. Double-click to skip a box and get
-  scolded. The browser back button re-seals the previous box.
+  scolded. The first press of the browser Back button re-seals the current
+  box (progress is kept); the second press leaves the site.
+- **Daily Box.** The first box each day has a gold label and a joke chosen
+  by the date, so everyone gets the same one. Opening it extends a daily
+  streak.
+- **Seasonal boxes.** About a third of boxes wear the season: pumpkin in
+  October, gift wrap December 1–26, hearts February 7–14. Force one with
+  `?season=pumpkin|gift|heart|none`.
+- **Resume link.** The menu (☰) has a link that carries depth, collection,
+  certificates and streak to another phone or browser (`?resume=…`). Loading
+  one asks before replacing existing progress.
+- **Speed.** The 1× button in the header cycles 1×, 2×, 3×. Every
+  animation and pause scales with it (`--spd` in CSS, `tick()` in JS). At 2×
+  and 3× a tap during an open queues the next box instead of skipping.
+- **Saving.** Progress is written to `localStorage` the moment a box is
+  opened and again whenever the page is hidden or closed. Only one history
+  entry is ever added, so leaving with Back never costs a box.
+- **Leaderbox.** Two tabs: Deepest Box, and Box of the Day (most boxes
+  opened today, UTC). After you submit once, your entry updates quietly every
+  25 boxes. Stored in D1 tables `board` and `board_daily`.
 - **Social.** Share button renders an image ("I have loved N boxes. Every
   shape. Every size."). Worldwide counter and the Leaderbox (the leaderboard, Deepest Box).
 - **Touches.** The box counter sits top right in the header, the tab title
