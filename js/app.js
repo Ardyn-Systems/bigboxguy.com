@@ -181,8 +181,28 @@ function load() {
 // Set right before a reload that has just written fresh data (reset, resume link),
 // so the page being left does not save its old progress over it on the way out.
 let frozen = false;
+// Saves only ever move progress forward. If another tab (or an older copy of
+// this one) saved further along, adopt that before writing, so a stale tab
+// closing or going to the background can never drag the save backwards.
+// Only an intentional reset or resume link may go back, and those bump the
+// epoch so every open tab reloads instead of saving over them.
+function adoptStored() {
+  const num = (k) => parseInt(store.get(k, 0), 10) || 0;
+  state.depth = Math.max(state.depth, num('depth'));
+  state.opened = Math.max(state.opened, num('opened'));
+  state.lastTrout = Math.max(state.lastTrout, num('lastTrout'));
+  state.lastDrop = Math.max(state.lastDrop, num('lastDrop'));
+  const c = store.get('coll', {}) || {};
+  for (const k of Object.keys(c)) state.coll[k] = Math.max(state.coll[k] || 0, parseInt(c[k], 10) || 0);
+  const ce = store.get('certs', {}) || {};
+  for (const k of Object.keys(ce)) if (!state.certs[k]) state.certs[k] = ce[k];
+  const se = store.get('seen', {}) || {};
+  for (const k of Object.keys(se)) if (se[k]) state.seen[k] = se[k];
+}
+function bumpEpoch() { store.set('epoch', Date.now() + Math.random()); }
 const persist = () => {
   if (frozen) return;
+  adoptStored();
   store.set('depth', state.depth); store.set('opened', state.opened); store.set('coll', state.coll);
   store.set('fresh', state.fresh); store.set('lastDrop', state.lastDrop); store.set('lastTrout', state.lastTrout); store.set('certs', state.certs); store.set('seen', state.seen);
 };
@@ -311,7 +331,8 @@ async function open(opts = {}) {
   hint('');
   state.opened += base;
   // Save now, not after the animation, so closing the tab mid-open keeps the box.
-  store.set('depth', state.depth + base); store.set('opened', state.opened);
+  store.set('depth', Math.max(parseInt(store.get('depth', 0), 10) || 0, state.depth + base));
+  store.set('opened', Math.max(parseInt(store.get('opened', 0), 10) || 0, state.opened));
   armGuard();
   if (cur.daily) claimDaily();
   await (opts.slow ? wait(6000) : tick(850));
@@ -705,6 +726,7 @@ function openMenu() {
     if (!confirm('Return all boxes to sender? This resets your depth, collection, and certificates.')) return;
     frozen = true;
     store.clear();
+    bumpEpoch();
     location.href = location.pathname;
   });
 }
@@ -832,6 +854,20 @@ addEventListener('popstate', () => {
 });
 // Belt and braces: save whenever the page is hidden or closed.
 addEventListener('pagehide', () => persist());
+// Another tab moved on: catch up. Another tab reset or loaded a resume link: reload.
+addEventListener('storage', (e) => {
+  if (frozen || !e.key || !e.key.startsWith('bbg.')) return;
+  if (e.key === 'bbg.epoch') { frozen = true; location.reload(); return; }
+  if (e.key !== 'bbg.depth' || state.busy) return;
+  const d = parseInt(JSON.parse(e.newValue || '0'), 10) || 0;
+  if (d <= state.depth) return;
+  adoptStored();
+  state.current = makeBox(state.depth); state.next = makeBox(state.depth + 1);
+  markDaily(state.current);
+  if (state.el) state.el.remove();
+  render(); updateUI();
+  hint('Caught up with your other tab.');
+});
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') persist(); });
 
 // ---------------------------------------------------------------- resume codes
@@ -862,6 +898,7 @@ function applyResume(r, ask) {
   if (ask && state.depth > 1 && r.depth !== state.depth &&
       !confirm(`Load Box ${fmt(r.depth)} from that link? It replaces Box ${fmt(state.depth)} on this device.`)) return false;
   frozen = true;
+  bumpEpoch();
   store.set('depth', r.depth); store.set('opened', r.opened); store.set('coll', r.coll); store.set('certs', r.certs);
   store.set('lastTrout', r.lastTrout); store.set('lastDrop', r.lastDrop); store.set('name', r.name);
   if (r.dailyDay) store.set('dailyDay', r.dailyDay);
@@ -1050,6 +1087,7 @@ async function worldwide() {
   if (q.has('season')) { const sq = q.get('season'); SEASON = SEASONS[sq] ? sq : ''; }
   if (q.has('depth')) {
     state.depth = Math.min(10000000, Math.max(1, parseInt(q.get('depth'), 10) || 1));
+    store.set('depth', state.depth);
     history.replaceState(null, '', location.pathname);
     persist();
   }
