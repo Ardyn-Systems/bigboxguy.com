@@ -1,5 +1,5 @@
 // "I opened N boxes and all I found was this box."
-import { drawBox } from './draw.js?v=20261012a';
+import { drawBox } from './draw.js?v=20261012b';
 
 export function shareText(opened) {
   return `I have loved ${Number(opened).toLocaleString('en-US')} boxes. Every shape. Every size. bigboxguy.com`;

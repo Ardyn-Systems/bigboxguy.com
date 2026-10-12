@@ -1,9 +1,9 @@
 // bigboxguy.com — the box engine. A box opens. There is a box inside. Repeat.
-import { sfx, strain, setMuted, isMuted, unlock } from './audio.js?v=20261012a';
-import { DROPS, TIER_LABEL, rollDrop, dropSVG, byId } from './drops.js?v=20261012a';
-import { renderCertificate, CERT_TIERS, tierAt } from './cert.js?v=20261012a';
-import { renderShare, shareText } from './share.js?v=20261012a';
-import * as api from './api.js?v=20261012a';
+import { sfx, strain, setMuted, isMuted, unlock } from './audio.js?v=20261012b';
+import { DROPS, TIER_LABEL, rollDrop, dropSVG, byId } from './drops.js?v=20261012b';
+import { renderCertificate, CERT_TIERS, tierAt } from './cert.js?v=20261012b';
+import { renderShare, shareText } from './share.js?v=20261012b';
+import * as api from './api.js?v=20261012b';
 
 const $ = (s, r = document) => r.querySelector(s);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -599,8 +599,11 @@ function todayCount() { const t = store.get('today', null); return t && t.day ==
 function bumpToday(n) {
   store.set('today', { day: utcDay(), count: todayCount() + n });
   // Players who have put a name on the Leaderbox get updated quietly every 25 boxes.
+  if (state.opened % 25 >= n) return;
+  const acct = account();
+  if (acct) { api.submitScore(acct.name, state.depth, todayCount(), utcDay(), acct.key); syncUp(); return; }
   const name = store.get('boardName', '');
-  if (name && state.opened % 25 < n) api.submitScore(name, state.depth, todayCount(), utcDay()).catch?.(() => {});
+  if (name) api.submitScore(name, state.depth, todayCount(), utcDay());
 }
 const isJustin = (n) => String(n).trim().toLowerCase() === 'justin box';
 const crown = (n) => (isJustin(n) ? '<span class="crown" title="There can be only one.">👑</span> ' : '');
@@ -629,7 +632,7 @@ async function openBoard() {
     if (!last) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">The Leaderbox is in a different box right now. (No connection to the box server.)</span></li>'; return; }
     const rows = tab === 'deep' ? (last.board || []) : (last.daily || []);
     if (!rows.length) { ol.innerHTML = `<li><span class="rank"></span><span class="nm muted">${tab === 'deep' ? 'Nobody yet. Be the first guy. Someone has to.' : 'Nobody has claimed today yet. It could be you. It should be you.'}</span></li>`; return; }
-    ol.innerHTML = rows.map((b, i) => `<li class="${me && b.name.toLowerCase() === me.toLowerCase() ? 'me' : ''}${isJustin(b.name) ? ' justin' : ''}"><span class="rank">${i + 1}</span><span class="nm">${crown(b.name)}${esc(b.name)}</span><span class="dp">${tab === 'deep' ? `Box ${fmt(b.depth)}` : `${fmt(b.count)} today`}</span></li>`).join('');
+    ol.innerHTML = rows.map((b, i) => `<li class="${me && b.name.toLowerCase() === me.toLowerCase() ? 'me' : ''}${isJustin(b.name) ? ' justin' : ''}"><span class="rank">${i + 1}</span><span class="nm">${crown(b.name)}${esc(b.name)}${b.claimed ? ' <span class="lock" title="Claimed with a password">🔒</span>' : ''}</span><span class="dp">${tab === 'deep' ? `Box ${fmt(b.depth)}` : `${fmt(b.count)} today`}</span></li>`).join('');
   };
   ov.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
     tab = t.dataset.tab;
@@ -650,9 +653,11 @@ async function openBoard() {
     state.name = name; store.set('name', name); store.set('boardName', name);
     const btn = $('button[type=submit]', ov);
     btn.disabled = true;
-    const res = await api.submitScore(name, state.depth, todayCount(), utcDay());
+    const acct = account();
+    const res = await api.submitScore(name, state.depth, todayCount(), utcDay(), acct && acct.name.toLowerCase() === name.toLowerCase() ? acct.key : undefined);
     btn.disabled = false;
     if (!res) { $('#board-note', ov).textContent = 'Could not reach the box server. Your box remains deep in spirit.'; return; }
+    if (res.error === 'claimed') { $('#board-note', ov).textContent = `${name} is claimed with a password. If it's you, sign in from the menu (☰) first.`; return; }
     draw(res, name);
     $('#board-note', ov).textContent = res.rank ? `You are #${res.rank} deepest${res.dailyRank ? ` and #${res.dailyRank} today` : ''}. You went deep. Everyone can see.` : 'Submitted. Deeper boxes exist. Keep going.';
     if (isJustin(name)) toast('There can be only one. 👑', 'rare', 5000);
@@ -700,6 +705,8 @@ function openMenu() {
       <li>Some boxes contain things. Collect them all. One of them is the Trout Box. After 1,000 boxes without it, the next one is the Trout Box. You deserve it.</li>
     </ul>
     <p class="muted">Your progress saves automatically on this device and browser. A private or incognito window forgets it when closed.</p>
+    <h3>Save your boxes</h3>
+    <div id="acct-box">${acctPanel()}</div>
     <h3>Take your boxes with you</h3>
     <p class="muted">Open this link on another phone or browser to pick up where you left off: depth, collection, certificates and all. It only ever adds: a link can never move anyone backwards, so it's safe to keep.</p>
     <div class="row"><input type="text" id="resume-out" readonly value="${esc(resumeLink())}" aria-label="Your resume link"><button class="btn" id="resume-copy">Copy link</button></div>
@@ -710,6 +717,7 @@ function openMenu() {
   `);
   $('#menu-name', ov).addEventListener('change', (e) => { state.name = e.target.value.trim(); store.set('name', state.name); });
   ov.querySelectorAll('[data-cert]').forEach((b) => b.addEventListener('click', () => { ov.close(); openCertificate(Number(b.dataset.cert), false); }));
+  wireAcct(ov);
   $('#resume-copy', ov).addEventListener('click', async () => {
     const inp = $('#resume-out', ov);
     try { await navigator.clipboard.writeText(inp.value); toast('Copied. Your boxes are portable now.'); }
@@ -853,7 +861,7 @@ addEventListener('popstate', () => {
   updateUI();
 });
 // Belt and braces: save whenever the page is hidden or closed.
-addEventListener('pagehide', () => persist());
+addEventListener('pagehide', () => { persist(); const a = account(); if (a) api.syncBeacon(a.name, a.key, snapshot()); });
 // Another tab moved on: catch up. Another tab reset or loaded a resume link: reload.
 addEventListener('storage', (e) => {
   if (frozen || !e.key || !e.key.startsWith('bbg.')) return;
@@ -1069,6 +1077,113 @@ function lonely() {
 }
 ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((t) => addEventListener(t, resetIdle, { passive: true }));
 
+// ---------------------------------------------------------------- accounts
+// Claim your Leaderbox name with a password. No email. Your save goes to the
+// server and follows you to any device you sign in on. Saves only move forward.
+const account = () => { const a = store.get('acct', null); return a && a.name && a.key ? a : null; };
+async function deriveKey(name, password) {
+  const te = new TextEncoder();
+  const base = await crypto.subtle.importKey('raw', te.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: te.encode('bigboxguy.com|' + name.trim().toLowerCase()), iterations: 150000 }, base, 256);
+  return [...new Uint8Array(bits)].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+function snapshot() {
+  return { depth: state.depth, opened: state.opened, coll: state.coll, certs: state.certs, lastTrout: state.lastTrout,
+    lastDrop: state.lastDrop, dailyDay: store.get('dailyDay', '') || '', streak: store.get('streak', 0) || 0 };
+}
+// Fold a save from the server into this device. Forward only, no reload.
+function mergeIn(s) {
+  if (!s) return;
+  const before = state.depth;
+  const num = (k) => parseInt(store.get(k, 0), 10) || 0;
+  store.set('depth', Math.max(num('depth'), s.depth || 0));
+  store.set('opened', Math.max(num('opened'), s.opened || 0));
+  store.set('lastTrout', Math.max(num('lastTrout'), s.lastTrout || 0));
+  store.set('lastDrop', Math.max(num('lastDrop'), s.lastDrop || 0));
+  const coll = { ...(store.get('coll', {}) || {}) };
+  for (const k of Object.keys(s.coll || {})) coll[k] = Math.max(parseInt(coll[k], 10) || 0, s.coll[k]);
+  store.set('coll', coll);
+  store.set('certs', { ...(s.certs || {}), ...(store.get('certs', {}) || {}) });
+  const dd = store.get('dailyDay', '') || '';
+  if (s.dailyDay && s.dailyDay > dd) { store.set('dailyDay', s.dailyDay); store.set('streak', s.streak || 0); }
+  adoptStored();
+  if (state.depth > before && !state.busy && state.el) {
+    state.current = makeBox(state.depth); state.next = makeBox(state.depth + 1);
+    markDaily(state.current);
+    state.el.remove(); render(); updateUI();
+  }
+  return state.depth > before;
+}
+async function syncUp() {
+  const a = account();
+  if (!a) return null;
+  const res = await api.sync(a.name, a.key, snapshot());
+  if (res.ok) { mergeIn(res.save); store.set('acctSynced', Date.now()); }
+  else if (res.error === 'wrong' || res.error === 'unknown') { store.set('acct', null); toast('You were signed out of your saved boxes. Sign in again from the menu.', 'scold', 6000); }
+  return res;
+}
+function acctPanel() {
+  const a = account();
+  if (a) {
+    const t = store.get('acctSynced', 0);
+    return `<p>Saved as <b>${esc(a.name)}</b> 🔒. Your boxes back up as you play and follow you to any phone or browser you sign in on.</p>
+      <p class="muted">${t ? `Last saved ${new Date(t).toLocaleString()}.` : 'Not saved yet on this device.'}</p>
+      <div class="row"><button class="btn" id="acct-sync">Save now</button><button class="btn" id="acct-out">Sign out on this device</button></div>`;
+  }
+  const nm = esc(store.get('boardName', '') || state.name || '');
+  return `<p class="muted">Pick a name and a password. That's it, no email. Your boxes save to the box server and come back whenever you sign in, on any device. Use your Leaderbox name to claim it so nobody else can post as you.</p>
+    <form id="acct-form" class="acct" autocomplete="on">
+      <input type="text" name="username" id="acct-name" maxlength="20" placeholder="Leaderbox name" value="${nm}" autocomplete="username" required>
+      <input type="password" name="password" id="acct-pass" minlength="6" maxlength="128" placeholder="Password (6+ characters)" autocomplete="current-password" required>
+      <div class="row"><button class="btn primary" type="submit" data-act="claim">Save my boxes</button><button class="btn" type="submit" data-act="login">I already saved. Load my boxes</button></div>
+      <p class="muted">No email means no password reset. Pick one you'll remember.</p>
+      <p class="muted" id="acct-msg" aria-live="polite"></p>
+    </form>`;
+}
+function wireAcct(ov) {
+  const box = $('#acct-box', ov);
+  const rewire = () => { box.innerHTML = acctPanel(); wireAcct(ov); };
+  const out = $('#acct-out', box);
+  if (out) out.addEventListener('click', () => { store.set('acct', null); toast('Signed out on this device. Your boxes stay here, and stay saved.'); rewire(); });
+  const syncBtn = $('#acct-sync', box);
+  if (syncBtn) syncBtn.addEventListener('click', async () => {
+    syncBtn.disabled = true;
+    const r = await syncUp();
+    syncBtn.disabled = false;
+    toast(r && r.ok ? `Saved. Box ${fmt(r.save.depth)} is safe on the box server.` : (r && r.message) || "Couldn't save right now.", r && r.ok ? 'rare' : 'scold');
+    rewire();
+  });
+  const form = $('#acct-form', box);
+  if (!form) return;
+  let act = 'claim';
+  form.querySelectorAll('button[data-act]').forEach((b) => b.addEventListener('click', () => { act = b.dataset.act; }));
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = $('#acct-msg', form);
+    const name = $('#acct-name', form).value.trim().slice(0, 20);
+    const pass = $('#acct-pass', form).value;
+    if (!name || pass.length < 6) { msg.textContent = 'Name, and a password of at least 6 characters.'; return; }
+    form.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    msg.textContent = act === 'claim' ? 'Saving your boxes…' : 'Finding your boxes…';
+    const key = await deriveKey(name, pass);
+    const res = act === 'claim' ? await api.claim(name, key, snapshot()) : await api.login(name, key);
+    form.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+    if (!res.ok) { msg.textContent = res.message || 'That did not work. Try again.'; return; }
+    store.set('acct', { name: res.name, key });
+    store.set('boardName', res.name); store.set('name', res.name); state.name = res.name;
+    if (act === 'login') {
+      const raised = mergeIn(res.save);
+      await syncUp();
+      toast(raised ? `Welcome back, ${res.name}. Your boxes are here: Box ${fmt(state.depth)}.` : `Signed in as ${res.name}. You're at Box ${fmt(state.depth)}.`, 'rare', 6000);
+    } else {
+      store.set('acctSynced', Date.now());
+      toast(`Saved. ${res.name} is yours now 🔒. Sign in with it on any device to get your boxes back.`, 'rare', 6000);
+    }
+    rewire();
+  });
+}
+
 // ---------------------------------------------------------------- buttons
 $('#btn-collection').addEventListener('click', openCollection);
 $('#btn-board').addEventListener('click', openBoard);
@@ -1149,4 +1264,6 @@ async function worldwide() {
   worldwide();
   setInterval(worldwide, 60000);
   if (q.has('depth')) milestones();
+  // Signed in? Pull anything newer from the server, then push this device up.
+  if (account()) syncUp();
 })();

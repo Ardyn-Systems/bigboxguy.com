@@ -55,18 +55,39 @@ export async function flush(beacon = false) {
   }
 }
 
-export async function submitScore(name, depth, today = 0, day = '') {
+export async function submitScore(name, depth, today = 0, day = '', key = undefined) {
   try {
     const r = await fetch(`${BASE}/score`, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, depth, today, day }),
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, depth, today, day, key }),
     });
-    if (!r.ok) throw new Error('bad status');
-    const j = await r.json();
-    if (j.offline) throw new Error('offline');
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 403 && j.error === 'claimed') return j;
+    if (!r.ok || j.offline) throw new Error('bad status');
     return j;
   } catch {
     return null;
   }
+}
+
+// Accounts: claim a Leaderbox name with a password, load it anywhere, keep it synced.
+// Every call returns the server's JSON (with .error and .message on failure), or
+// { error: 'offline' } when the box server can't be reached.
+async function account(action, body) {
+  try {
+    const r = await fetch(`${BASE}/${action}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (j.offline) return { error: 'offline', message: "Can't reach the box server right now. Try again in a minute." };
+    return r.ok ? j : { error: j.error || 'failed', message: j.message || 'Something went wrong. Try again.' };
+  } catch {
+    return { error: 'offline', message: "Can't reach the box server right now. Try again in a minute." };
+  }
+}
+export const claim = (name, key, save) => account('claim', { name, key, save });
+export const login = (name, key) => account('login', { name, key });
+export const sync = (name, key, save) => account('sync', { name, key, save });
+export function syncBeacon(name, key, save) {
+  if (!navigator.sendBeacon) return;
+  navigator.sendBeacon(`${BASE}/sync`, new Blob([JSON.stringify({ name, key, save })], { type: 'application/json' }));
 }
 
 setInterval(() => flush(), 15000);
