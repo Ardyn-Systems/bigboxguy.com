@@ -1,5 +1,5 @@
 // The certificates. Issued by the Association of Guys who love Box. Maximally official.
-import { drawBox } from './draw.js?v=20261010b';
+import { drawBox } from './draw.js?v=20261012a';
 
 // Each tier: the box count that earns it, and the wording. Higher is better.
 export const CERT_TIERS = [
@@ -103,7 +103,7 @@ function wrap(ctx, text, maxWidth) {
 }
 function center(ctx, text, x, y) { ctx.textAlign = 'center'; ctx.fillText(text, x, y); }
 
-export async function renderCertificate({ tier, name, date, serial }) {
+export async function renderCertificate({ tier, name, date, serial, personal = false }) {
   await fonts();
   const t = tier || CERT_TIERS[0];
   const W = 1600, H = 1131;
@@ -223,6 +223,19 @@ export async function renderCertificate({ tier, name, date, serial }) {
   const role = t.at >= 10000 ? 'Founding Guy, Association of Guys who love Box (visibly moved)' : 'Founding Guy, Association of Guys who love Box';
   fit(ctx, role, 470, 'Rubik', 19, 14);
   center(ctx, role, cx, 1006);
+
+  // Justin Box signed this one himself.
+  if (personal) {
+    ctx.save();
+    ctx.translate(cx + 175, 828); ctx.rotate(0.14);
+    ctx.strokeStyle = '#c8322b'; ctx.fillStyle = '#c8322b'; ctx.lineWidth = 4;
+    ctx.strokeRect(-128, -30, 256, 52);
+    ctx.font = "700 20px Rubik"; ctx.textAlign = 'center';
+    ctx.fillText('PERSONALLY SIGNED', 0, -4);
+    ctx.font = "13px Rubik";
+    ctx.fillText('in real time, by hand, slowly', 0, 15);
+    ctx.restore();
+  }
 
   // date + serial
   ctx.fillStyle = '#6f5d47';

@@ -1,9 +1,9 @@
 // bigboxguy.com — the box engine. A box opens. There is a box inside. Repeat.
-import { sfx, strain, setMuted, isMuted, unlock } from './audio.js?v=20261010b';
-import { DROPS, TIER_LABEL, rollDrop, dropSVG } from './drops.js?v=20261010b';
-import { renderCertificate, CERT_TIERS, tierAt } from './cert.js?v=20261010b';
-import { renderShare, shareText } from './share.js?v=20261010b';
-import * as api from './api.js?v=20261010b';
+import { sfx, strain, setMuted, isMuted, unlock } from './audio.js?v=20261012a';
+import { DROPS, TIER_LABEL, rollDrop, dropSVG, byId } from './drops.js?v=20261012a';
+import { renderCertificate, CERT_TIERS, tierAt } from './cert.js?v=20261012a';
+import { renderShare, shareText } from './share.js?v=20261012a';
+import * as api from './api.js?v=20261012a';
 
 const $ = (s, r = document) => r.querySelector(s);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -18,6 +18,10 @@ const today = () => new Date().toLocaleDateString('en-US', { year: 'numeric', mo
 // Boxes do not shrink. The box inside is drawn a touch smaller so it visibly sits
 // inside, then grows to full size as it is lifted out. Oversize boxes start bigger.
 const PREVIEW = 0.9;
+const pad = (n) => String(n).padStart(2, '0');
+const localDay = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const utcDay = () => new Date().toISOString().slice(0, 10);
+function hashStr(str) { let h = 2166136261; for (const ch of str) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 const store = {
   get(k, d) { try { const v = localStorage.getItem('bbg.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('bbg.' + k, JSON.stringify(v)); } catch {} },
@@ -108,10 +112,53 @@ const MILESTONES = {
   5000: 'Box 5,000. Please drink some water. Stretch. Wash your hands. Then get back to box.',
 };
 
+// Seasonal boxes: about a third of boxes wear the season while it lasts.
+const SEASONS = {
+  pumpkin: {
+    jokes: ['Spooky box. Trick or treat? Both.', 'Carve carefully. She bruises.', 'Haunted by the box before it.',
+      'Contains: one (1) box. Possibly cursed.', 'Boo. That was the box. It loves you.', 'Something in here wants to be opened. Badly.'],
+    stamps: ['Spooky', 'Haunted', 'Trick or treat'],
+  },
+  gift: {
+    jokes: ['Do not open until the 25th. Okay, fine.', 'Wrapped with love. And tape. Mostly tape.', 'Naughty list box. Open it anyway.',
+      "It's the thought that counts. The thought is box.", 'Shake it. You know you want to.'],
+    stamps: ['Gift', 'Do not open', 'Naughty'],
+  },
+  heart: {
+    jokes: ['Be my box.', 'Roses are red. Box is brown. I love you.', 'Sealed with a kiss. And packing tape.',
+      "Valentine's box. She saved herself for you.", 'Open me gently. I bruise like a heart.'],
+    stamps: ['With love', 'Be mine', 'Fragile (emotionally)'],
+  },
+};
+function seasonFor(d = new Date()) {
+  const m = d.getMonth() + 1, day = d.getDate();
+  if (m === 10) return 'pumpkin';
+  if (m === 12 && day <= 26) return 'gift';
+  if (m === 2 && day >= 7 && day <= 14) return 'heart';
+  return '';
+}
+let SEASON = seasonFor();
+// The Daily Box: the first box each day. Same label for everyone on the same date.
+const DAILY_JOKES = [
+  'Fresh today. Nobody else has had her yet. Well, everyone has. Same box.',
+  'Today only. Tomorrow she will be someone else entirely.',
+  'Daily box. Part of a balanced breakfast.',
+  'One a day keeps the loneliness away.',
+  'Today\'s box. Same as everyone\'s. Treat her like she\'s yours.',
+  'Your daily dose of box. Do not exceed one. Exceed one.',
+  'Good morning. She has been waiting all night.',
+  'Daily box. Like a vitamin, but you open it.',
+  'Today\'s special: box. Chef\'s kiss.',
+  'Came in fresh this morning. Still warm.',
+  'The Association picked this one for you. Personally.',
+  'Box of the day. Every day. Forever.',
+];
+
 // ---------------------------------------------------------------- state
 const state = {
   depth: 1, opened: 0, coll: {}, fresh: [], lastDrop: 0, lastTrout: 0, name: '', certs: {}, seen: {},
   s: 1, busy: false, lastClick: 0, skip: false, el: null, current: null, next: null, speed: 1, queued: false,
+  five: false, troutUntil: 0,
 };
 const stage = $('#stage');
 
@@ -129,8 +176,13 @@ function load() {
     state.certs[100] = { serial: store.get('serial', null) || `BBG-${Math.floor(Math.random() * 90000) + 10000}-100`, date: store.get('certDate', null) || today() };
   }
   state.seen = store.get('seen', {}) || {};
+  state.five = !!store.get('five', false);
 }
+// Set right before a reload that has just written fresh data (reset, resume link),
+// so the page being left does not save its old progress over it on the way out.
+let frozen = false;
 const persist = () => {
+  if (frozen) return;
   store.set('depth', state.depth); store.set('opened', state.opened); store.set('coll', state.coll);
   store.set('fresh', state.fresh); store.set('lastDrop', state.lastDrop); store.set('lastTrout', state.lastTrout); store.set('certs', state.certs); store.set('seen', state.seen);
 };
@@ -142,7 +194,7 @@ function code() {
 }
 function currentTroutDepth() {
   const c = state.current;
-  return c && c.drop && c.drop.id === 'trout' ? c.depth : 0;
+  return c && c.drop && c.drop.id === 'trout' && !c.drop.fake ? c.depth : 0;
 }
 function makeBox(depth) {
   let variant = '';
@@ -163,17 +215,46 @@ function makeBox(depth) {
   if (variant === 'flip') { b.joke = 'THIS SIDE UP ↑'; b.stamp = 'This side up'; }
   if (variant === 'taped') { b.stamp = 'Extra secure'; }
   if (variant === 'big') { b.joke = 'Contents: a box. A big one. Lucky you.'; b.stamp = 'Oversize'; }
+  // Seasonal skin. Variant labels (upside down, oversize) keep their own joke.
+  if (SEASON && Math.random() < 0.35) {
+    b.skin = SEASON;
+    if (!variant || variant === 'taped') { b.joke = pick(SEASONS[SEASON].jokes); b.stamp = pick(SEASONS[SEASON].stamps); }
+  }
+  // Konami: for 30 seconds every box is a Trout Box. Those trout do not count.
+  if (Date.now() < state.troutUntil) b.drop = { ...byId.trout, fake: true };
   if (b.drop && b.drop.id === 'trout') { b.joke = 'TROUT BOX'; b.stamp = 'Trout Box'; b.from = ['The Sea', 'A Guy Who Loves Box']; }
+  if (depth === 69 || depth === 6969 || depth === 69420) { b.joke = 'Nice.'; b.stamp = 'Nice'; b.from = ['Nice', 'Nice']; }
+  if (depth === 404) { b.joke = 'Box not found.'; b.stamp = '404'; b.empty = true; }
+  if (depth === 405) { b.joke = 'Found it.'; b.stamp = 'Found'; b.from = ['Box 404', 'You']; }
   return b;
+}
+function markDaily(b) {
+  if (store.get('dailyDay', '') === localDay()) return;
+  if (b.drop && b.drop.id === 'trout') return;
+  b.daily = true;
+  b.joke = DAILY_JOKES[hashStr(localDay()) % DAILY_JOKES.length];
+  b.stamp = 'Daily Box';
+  b.from = ['Today', 'Everyone'];
+}
+function claimDaily() {
+  const t = localDay();
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const last = store.get('dailyDay', '');
+  if (last === t) return;
+  const streak = last === localDay(y) ? (store.get('streak', 0) || 0) + 1 : 1;
+  store.set('dailyDay', t); store.set('streak', streak);
+  setTimeout(() => toast(`Daily Box claimed. Streak: ${streak} ${streak === 1 ? 'day' : 'days'}. Everyone got the same box today. Come back tomorrow.`, 'rare', 6000), 900 / state.speed);
 }
 function boxHTML(b, next, opts = {}) {
   const mini = !next;
   let inside = '';
-  if (next) {
+  if (next && b.empty) {
+    inside = '<div class="nothing">nothing</div><div class="drop" hidden></div>';
+  } else if (next) {
     const irot = (next.variant === 'flip' ? 180 : 0) - (b.variant === 'flip' ? 180 : 0);
     inside = `<div class="inner" style="--f:${b.factor};--irot:${irot}deg">${boxHTML(next, null)}</div><div class="drop" hidden></div>`;
   }
-  return `<div class="box ${mini ? 'mini' : 'main'} ${b.variant}${b.drop && b.drop.id === 'trout' ? ' troutbox' : ''}"${mini ? '' : ' tabindex="0" role="button" aria-label="A box. Open it."'}>
+  return `<div class="box ${mini ? 'mini' : 'main'} ${b.variant}${b.drop && b.drop.id === 'trout' ? ' troutbox' : ''}${b.skin ? ' skin-' + b.skin : ''}${b.daily ? ' daily' : ''}"${mini ? '' : ' tabindex="0" role="button" aria-label="A box. Open it."'}>
     <div class="walls"></div>
     <div class="interior">${inside}</div>
     <div class="flap l"></div><div class="flap r"></div>
@@ -200,7 +281,7 @@ function render(opts = {}) {
 function echo(b) {
   const el = $('#echo');
   if (!el) return;
-  el.innerHTML = `<span class="ej">${esc(b.joke)}</span><span class="ef">From ${esc(b.from[0])} · To ${esc(b.from[1])}${b.variant === 'taped' ? ' · taped shut' : b.variant === 'flip' ? ' · upside down' : b.variant === 'big' ? ' · oversize inside' : ''}</span>`;
+  el.innerHTML = `<span class="ej">${esc(b.joke)}</span><span class="ef">From ${esc(b.from[0])} · To ${esc(b.from[1])}${b.daily ? ' · Daily Box' : ''}${b.variant === 'taped' ? ' · taped shut' : b.variant === 'flip' ? ' · upside down' : b.variant === 'big' ? ' · oversize inside' : ''}</span>`;
 }
 
 // ---------------------------------------------------------------- opening
@@ -216,25 +297,29 @@ function click() {
   }
   open();
 }
-async function open() {
+async function open(opts = {}) {
   if (state.busy) return;
   state.busy = true; state.skip = false;
   const box = state.el, cur = state.current;
+  const base = state.five ? 5 : 1;
   unlock(); sfx('fwump');
+  perfectTime(box);
   box.classList.remove('rattling');
+  if (opts.slow) box.classList.add('slowopen');
   box.classList.add('open');
   peanuts(box);
   hint('');
-  state.opened++;
+  state.opened += base;
   // Save now, not after the animation, so closing the tab mid-open keeps the box.
-  store.set('depth', state.depth + 1); store.set('opened', state.opened);
+  store.set('depth', state.depth + base); store.set('opened', state.opened);
   armGuard();
-  await tick(850);
+  if (cur.daily) claimDaily();
+  await (opts.slow ? wait(6000) : tick(850));
   if (cur.drop) await showDrop(box, cur.drop);
   else await tick(320);
-  let n = 1;
+  let n = base;
   if (state.skip) {
-    n = 2; state.opened++;
+    n = base * 2; state.opened += base;
     sfx('tut');
     toast("You didn't even savor that one. Slow down. Box deserves a little foreplay.", 'scold');
   }
@@ -245,9 +330,14 @@ function advance(n) {
   state.depth += n;
   // The new box starts at the size it had inside the old one, then settles to full size.
   state.s = cur.factor;
-  state.current = n === 1 ? state.next : makeBox(state.depth);
+  // Always lift out the box that was showing inside, even when skipping or in
+  // Five-Box Mode, so what you saw is what you get.
+  state.current = state.next;
+  if (n > 1) state.current.depth = state.depth;
+  if (!state.current.daily) markDaily(state.current);
   state.next = makeBox(state.depth + 1);
   persist();
+  bumpToday(n);
   old.classList.remove('main');
   old.classList.add('spent');
   setTimeout(() => old.remove(), 500 / state.speed);
@@ -281,6 +371,12 @@ async function showDrop(box, drop) {
   slot.innerHTML = dropSVG(drop.id);
   slot.hidden = false;
   sfx(drop.sfx);
+  if (drop.fake) {
+    toast('Konami Trout. It does not count. It does flop.', 'rare', 2500);
+    await tick(drop.ms);
+    slot.hidden = true;
+    return;
+  }
   state.coll[drop.id] = (state.coll[drop.id] || 0) + 1;
   state.lastDrop = state.depth;
   if (drop.id === 'trout') state.lastTrout = state.depth;
@@ -324,6 +420,7 @@ function setText(sel, text) { const el = $(sel); if (el) el.textContent = text; 
 function updateUI() {
   try {
     setText('#depth', fmt(state.depth));
+    const dc = $('.tools .depth'); if (dc) dc.classList.toggle('five', state.five);
     document.title = `Box ${fmt(state.depth)} - bigboxguy.com`;
     favicon(((state.depth - 1) % 12) / 11);
     if (state.depth > 1 && state.depth % 3 === 0 && Math.random() < 0.6) hint(pick(HINTS));
@@ -377,6 +474,8 @@ function milestones() {
     for (const t of earned) {
       state.certs[t.at] = { serial: `${t.prefix}-${Math.floor(Math.random() * 90000) + 10000}-${t.at}`, date: today() };
     }
+    // Justin Box promised to sign the next one himself.
+    if (store.get('signNext', false)) { state.certs[earned[earned.length - 1].at].personal = true; store.set('signNext', false); }
     persist();
     sfx('tada');
     const top = earned[earned.length - 1];
@@ -402,7 +501,7 @@ async function openCertificate(at = 100, justEarned = false) {
   const draw = async () => {
     const name = $('#cert-name', ov).value.trim() || 'A Guy';
     state.name = name; store.set('name', name);
-    const c = await renderCertificate({ tier, name, date: rec.date, serial: rec.serial });
+    const c = await renderCertificate({ tier, name, date: rec.date, serial: rec.serial, personal: !!rec.personal });
     const wrap = $('#certwrap', ov);
     wrap.innerHTML = '';
     wrap.appendChild(c);
@@ -474,43 +573,69 @@ function openCollection() {
   `);
 }
 
+// Opens today (UTC, to match the server's Box of the Day).
+function todayCount() { const t = store.get('today', null); return t && t.day === utcDay() ? t.count : 0; }
+function bumpToday(n) {
+  store.set('today', { day: utcDay(), count: todayCount() + n });
+  // Players who have put a name on the Leaderbox get updated quietly every 25 boxes.
+  const name = store.get('boardName', '');
+  if (name && state.opened % 25 < n) api.submitScore(name, state.depth, todayCount(), utcDay()).catch?.(() => {});
+}
+const isJustin = (n) => String(n).trim().toLowerCase() === 'justin box';
+const crown = (n) => (isJustin(n) ? '<span class="crown" title="There can be only one.">👑</span> ' : '');
+
 async function openBoard() {
-  let refresh = 0;
+  let refresh = 0, tab = 'deep', last = null;
   const ov = modal(`
     <h2>Leaderbox</h2>
-    <p class="muted" style="margin-top:-4px">Deepest box wins.</p>
-    <p class="muted">Pure vanity. No accounts. Just a name and a number nobody can verify. Like every story a guy has ever told about box.</p>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="deep" aria-selected="true">Deepest Box</button>
+      <button class="tab" role="tab" data-tab="today" aria-selected="false">Box of the Day</button>
+    </div>
+    <p class="muted" id="board-sub">Deepest box wins. Pure vanity. No accounts. Just a name and a number nobody can verify.</p>
     <ol class="board" id="board"><li><span class="rank"></span><span class="nm muted">Checking the back…</span></li></ol>
     <form class="row" id="scoreform"><input type="text" name="name" maxlength="20" placeholder="Your name (or title)" value="${esc(state.name)}" required><button class="btn primary" type="submit">Submit Box ${fmt(state.depth)}</button></form>
     <p class="muted" id="board-note"></p>
   `, { onClose: () => clearInterval(refresh) });
-  const draw = (board, me) => {
-    const ol = $('#board', ov);
-    if (!board) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">The Leaderbox is in a different box right now. (No connection to the box server.)</span></li>'; return; }
-    if (!board.length) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">Nobody yet. Be the first guy. Someone has to.</span></li>'; return; }
-    ol.innerHTML = board.map((b, i) => `<li class="${me && b.name.toLowerCase() === me.toLowerCase() ? 'me' : ''}"><span class="rank">${i + 1}</span><span class="nm">${esc(b.name)}</span><span class="dp">Box ${fmt(b.depth)}</span></li>`).join('');
+  const SUBS = {
+    deep: 'Deepest box wins. Pure vanity. No accounts. Just a name and a number nobody can verify.',
+    today: `Most boxes opened today (UTC). Resets at midnight. You've opened ${fmt(todayCount())} today. Submitting keeps you updated every 25 boxes.`,
   };
-  const st = await api.getStats();
-  draw(st ? st.board : null, state.name);
+  const draw = (res, me) => {
+    if (res) last = res;
+    const ol = $('#board', ov);
+    $('#board-sub', ov).textContent = SUBS[tab];
+    if (!last) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">The Leaderbox is in a different box right now. (No connection to the box server.)</span></li>'; return; }
+    const rows = tab === 'deep' ? (last.board || []) : (last.daily || []);
+    if (!rows.length) { ol.innerHTML = `<li><span class="rank"></span><span class="nm muted">${tab === 'deep' ? 'Nobody yet. Be the first guy. Someone has to.' : 'Nobody has claimed today yet. It could be you. It should be you.'}</span></li>`; return; }
+    ol.innerHTML = rows.map((b, i) => `<li class="${me && b.name.toLowerCase() === me.toLowerCase() ? 'me' : ''}${isJustin(b.name) ? ' justin' : ''}"><span class="rank">${i + 1}</span><span class="nm">${crown(b.name)}${esc(b.name)}</span><span class="dp">${tab === 'deep' ? `Box ${fmt(b.depth)}` : `${fmt(b.count)} today`}</span></li>`).join('');
+  };
+  ov.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
+    tab = t.dataset.tab;
+    ov.querySelectorAll('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
+    draw(null, state.name);
+  }));
+  draw(await api.getStats(), state.name);
   // Other guys are submitting too. Keep the list fresh while it is open.
   refresh = setInterval(async () => {
     if (!document.body.contains(ov)) { clearInterval(refresh); return; }
-    const s = await api.getStats();
-    if (s) draw(s.board, state.name);
+    const s2 = await api.getStats();
+    if (s2) draw(s2, state.name);
   }, 15000);
   $('#scoreform', ov).addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = $('input', ov).value.trim().slice(0, 20);
     if (!name) return;
-    state.name = name; store.set('name', name);
+    state.name = name; store.set('name', name); store.set('boardName', name);
     const btn = $('button[type=submit]', ov);
     btn.disabled = true;
-    const res = await api.submitScore(name, state.depth);
+    const res = await api.submitScore(name, state.depth, todayCount(), utcDay());
     btn.disabled = false;
     if (!res) { $('#board-note', ov).textContent = 'Could not reach the box server. Your box remains deep in spirit.'; return; }
-    draw(res.board, name);
-    $('#board-note', ov).textContent = res.rank ? `You are #${res.rank}. You went deep. Everyone can see.` : 'Submitted. Deeper boxes exist. Keep going.';
-    toast('Leaderbox updated. Nobody can take this from you. Many will try.');
+    draw(res, name);
+    $('#board-note', ov).textContent = res.rank ? `You are #${res.rank} deepest${res.dailyRank ? ` and #${res.dailyRank} today` : ''}. You went deep. Everyone can see.` : 'Submitted. Deeper boxes exist. Keep going.';
+    if (isJustin(name)) toast('There can be only one. 👑', 'rare', 5000);
+    else toast('Leaderbox updated. Nobody can take this from you. Many will try.');
   });
 }
 
@@ -554,28 +679,45 @@ function openMenu() {
       <li>Some boxes contain things. Collect them all. One of them is the Trout Box. After 1,000 boxes without it, the next one is the Trout Box. You deserve it.</li>
     </ul>
     <p class="muted">Your progress saves automatically on this device and browser. A private or incognito window forgets it when closed.</p>
+    <h3>Take your boxes with you</h3>
+    <p class="muted">Open this link on another phone or browser to pick up exactly where you left off: depth, collection, certificates and all.</p>
+    <div class="row"><input type="text" id="resume-out" readonly value="${esc(resumeLink())}" aria-label="Your resume link"><button class="btn" id="resume-copy">Copy link</button></div>
+    <div class="row"><input type="text" id="resume-in" placeholder="Paste a resume link or code" aria-label="Resume link or code"><button class="btn" id="resume-load">Load</button></div>
     <h3>Start over</h3>
     <div class="row"><button class="btn" id="menu-reset">Return all boxes to sender</button><span class="muted">Resets your depth, collection, and certificates on this device.</span></div>
     <p class="muted" style="margin-top:18px">Made by a guy who loves box. <a href="about.html">About the Big Box Guy</a> · <a href="services.html">Services</a> · <a href="pricing.html">Pricing</a></p>
   `);
   $('#menu-name', ov).addEventListener('change', (e) => { state.name = e.target.value.trim(); store.set('name', state.name); });
   ov.querySelectorAll('[data-cert]').forEach((b) => b.addEventListener('click', () => { ov.close(); openCertificate(Number(b.dataset.cert), false); }));
+  $('#resume-copy', ov).addEventListener('click', async () => {
+    const inp = $('#resume-out', ov);
+    try { await navigator.clipboard.writeText(inp.value); toast('Copied. Your boxes are portable now.'); }
+    catch { inp.select(); toast('Select the link and copy it by hand, like a guy.'); }
+  });
+  $('#resume-load', ov).addEventListener('click', () => {
+    const raw = $('#resume-in', ov).value.trim();
+    const m = raw.match(/[?&]resume=([A-Za-z0-9_-]+)/);
+    const data = decodeResume(m ? m[1] : raw);
+    if (!data) { toast("That code isn't a box. Check you copied all of it.", 'scold'); return; }
+    applyResume(data, true);
+  });
   $('#menu-reset', ov).addEventListener('click', () => {
     if (!confirm('Return all boxes to sender? This resets your depth, collection, and certificates.')) return;
+    frozen = true;
     store.clear();
     location.href = location.pathname;
   });
 }
 
 // ---------------------------------------------------------------- input
-let holdT1 = 0, holdT2 = 0, downAt = 0, straining = false;
+let holdT1 = 0, holdT2 = 0, downAt = 0, straining = false, downX = 0, downY = 0;
 function clearHold() { clearTimeout(holdT1); clearTimeout(holdT2); }
 function endStrain() { straining = false; strain(false); if (state.el) state.el.classList.remove('straining'); }
 
 stage.addEventListener('pointerdown', (e) => {
   const box = e.target.closest('.box.main');
   if (!box || (e.pointerType === 'mouse' && e.button !== 0)) return;
-  unlock(); requestMotion();
+  unlock();
   const now = performance.now();
   if (state.busy) {
     if (state.speed > 1) state.queued = true;
@@ -583,7 +725,7 @@ stage.addEventListener('pointerdown', (e) => {
     state.lastClick = now;
     return;
   }
-  state.lastClick = now; downAt = now;
+  state.lastClick = now; downAt = now; downX = e.clientX; downY = e.clientY;
   clearHold();
   holdT1 = setTimeout(() => {
     straining = true; box.classList.add('straining'); strain(true); hint("She's playing hard to get.");
@@ -591,13 +733,20 @@ stage.addEventListener('pointerdown', (e) => {
   holdT2 = setTimeout(() => { endStrain(); downAt = 0; toast('FINE. But only because you held on.', 'scold'); open(); }, 2100);
 });
 stage.addEventListener('pointerup', (e) => {
+  // Motion permission must be asked on the finger-up part of a tap; browsers
+  // refuse it on finger-down. (iPhone shows a prompt; most Androids just allow it.)
+  requestMotion();
   clearHold();
   if (!state.el || state.busy) { downAt = 0; return; }
   if (straining) { endStrain(); hint("She's shy. Try a gentle click. Maybe buy her dinner."); downAt = 0; return; }
+  const dx = e.clientX - downX, dy = e.clientY - downY;
+  // A swipe is not a tap. It might be part of the code, though.
+  if (downAt && Math.hypot(dx, dy) > 28) { swipe(dx, dy); downAt = 0; return; }
   if (downAt && performance.now() - downAt < 380 && e.target.closest('.box.main')) click();
   downAt = 0;
 });
-['pointercancel', 'pointerleave'].forEach((t) => stage.addEventListener(t, () => { clearHold(); if (straining) endStrain(); downAt = 0; }));
+stage.addEventListener('pointercancel', () => { clearHold(); if (straining) endStrain(); downAt = 0; });
+stage.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { clearHold(); if (straining) endStrain(); downAt = 0; } });
 stage.addEventListener('keydown', (e) => {
   if (!e.target.closest('.box.main')) return;
   if (e.key === ' ' || e.key === 'Enter') {
@@ -636,13 +785,24 @@ function onMotion(e) {
   const a = e.accelerationIncludingGravity;
   if (!a) return;
   const m = Math.hypot(a.x || 0, a.y || 0, a.z || 0);
-  if (Math.abs(m - 9.81) > 13 && performance.now() - lastShake > 1500) { lastShake = performance.now(); rattle(); }
+  if (Math.abs(m - 9.81) <= 13) return;
+  const now = performance.now();
+  if (now - lastJolt < 250) return;
+  lastJolt = now;
+  if (now - lastShake > 1500) { lastShake = now; rattle(); }
+  jolts = jolts.filter((t) => now - t < 8000);
+  jolts.push(now);
+  if (jolts.length >= 10) { jolts = []; dizzy(); }
 }
+let lastJolt = 0, jolts = [];
 function requestMotion() {
   if (motionReady || !matchMedia('(pointer: coarse)').matches) return;
   motionReady = true;
   if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-    DeviceMotionEvent.requestPermission().then((s) => { if (s === 'granted') addEventListener('devicemotion', onMotion); }).catch(() => {});
+    DeviceMotionEvent.requestPermission()
+      .then((s) => { if (s === 'granted') addEventListener('devicemotion', onMotion); })
+      // Refused for lack of a real tap (not by the player): try again on the next tap.
+      .catch(() => { motionReady = false; });
   } else if ('DeviceMotionEvent' in window) {
     addEventListener('devicemotion', onMotion);
   }
@@ -673,6 +833,176 @@ addEventListener('popstate', () => {
 // Belt and braces: save whenever the page is hidden or closed.
 addEventListener('pagehide', () => persist());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') persist(); });
+
+// ---------------------------------------------------------------- resume codes
+function b64u(str) { return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function unb64u(str) { return decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/')))); }
+function resumeLink() {
+  const data = { v: 1, d: state.depth, o: state.opened, c: state.coll, ce: state.certs, lt: state.lastTrout, ld: state.lastDrop,
+    n: state.name, dd: store.get('dailyDay', ''), st: store.get('streak', 0) };
+  return `${location.origin}/?resume=${b64u(JSON.stringify(data))}`;
+}
+const int = (v, lo, hi) => { const n = Math.floor(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };
+function decodeResume(code) {
+  try {
+    const d = JSON.parse(unb64u(String(code)));
+    if (!d || d.v !== 1) return null;
+    const coll = {};
+    for (const k of Object.keys(d.c || {})) if (byId[k]) coll[k] = int(d.c[k], 0, 1e9);
+    const certs = {};
+    for (const k of Object.keys(d.ce || {})) {
+      const r = d.ce[k] || {};
+      if (CERT_TIERS.some((t) => String(t.at) === k)) certs[k] = { serial: String(r.serial || '').slice(0, 40), date: String(r.date || '').slice(0, 40), ...(r.personal ? { personal: true } : {}) };
+    }
+    return { depth: int(d.d, 1, 1e7), opened: int(d.o, 0, 1e9), coll, certs, lastTrout: int(d.lt, 0, 1e7), lastDrop: int(d.ld, 0, 1e7),
+      name: String(d.n || '').slice(0, 28), dailyDay: /^\d{4}-\d{2}-\d{2}$/.test(d.dd || '') ? d.dd : '', streak: int(d.st, 0, 1e5) };
+  } catch { return null; }
+}
+function applyResume(r, ask) {
+  if (ask && state.depth > 1 && r.depth !== state.depth &&
+      !confirm(`Load Box ${fmt(r.depth)} from that link? It replaces Box ${fmt(state.depth)} on this device.`)) return false;
+  frozen = true;
+  store.set('depth', r.depth); store.set('opened', r.opened); store.set('coll', r.coll); store.set('certs', r.certs);
+  store.set('lastTrout', r.lastTrout); store.set('lastDrop', r.lastDrop); store.set('name', r.name);
+  if (r.dailyDay) store.set('dailyDay', r.dailyDay);
+  store.set('streak', r.streak);
+  location.href = location.pathname;
+  return true;
+}
+
+// ---------------------------------------------------------------- secrets
+// Not in the README on purpose. If you are reading this in the source: hello.
+let lastPerfect = '';
+function perfectTime(box) {
+  const d = new Date(), h = d.getHours() % 12 || 12, m = d.getMinutes();
+  if (!((h === 4 && m === 20) || (h === 11 && m === 11))) return;
+  const stamp = box.querySelector('.stamp');
+  if (stamp) stamp.textContent = 'Perfect time';
+  const key = `${h}:${pad(m)}`;
+  if (lastPerfect === key + d.getHours()) return;
+  lastPerfect = key + d.getHours();
+  toast(`Opened at exactly ${key}. Perfect time.`, 'rare', 5000);
+}
+
+// Konami: arrow keys + B A on a keyboard, or swipe up up down down left right left right on the box.
+const KONAMI = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right'];
+let konamiSeq = [];
+function konamiStep(dir) {
+  konamiSeq.push(dir);
+  konamiSeq = konamiSeq.slice(-10);
+  const s8 = konamiSeq.slice(-8).join(), s10 = konamiSeq.join();
+  if (s8 === KONAMI.join() && konamiSeq.length >= 8 && (dir === 'right' && konamiTouch) || s10 === [...KONAMI, 'b', 'a'].join()) {
+    konamiSeq = [];
+    troutTime();
+  }
+}
+let konamiTouch = false;
+function swipe(dx, dy) {
+  konamiTouch = true;
+  konamiStep(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+}
+function troutTime() {
+  state.troutUntil = Date.now() + 30000;
+  toast('↑↑↓↓←→←→. Every box is a Trout Box for 30 seconds. They do not count. They do flop.', 'rare', 6000);
+  sfx('flop');
+  if (!state.busy && state.el) {
+    state.current = makeBox(state.depth); state.next = makeBox(state.depth + 1);
+    state.el.remove(); render();
+  }
+  setTimeout(() => { if (Date.now() >= state.troutUntil) hint('The trout have gone back to the sea.'); }, 30200);
+}
+
+// Typing: "box" anywhere makes Big Box Guy peek in.
+let typed = '';
+addEventListener('keydown', (e) => {
+  if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+  const arrows = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+  if (arrows[e.key]) { konamiTouch = false; konamiStep(arrows[e.key]); return; }
+  if (e.key && e.key.length === 1) {
+    const k = e.key.toLowerCase();
+    if (k === 'b' || k === 'a') konamiStep(k);
+    typed = (typed + k).slice(-3);
+    if (typed === 'box') { typed = ''; peek(); }
+  }
+});
+let peeking = false;
+function peek() {
+  if (peeking) return;
+  peeking = true;
+  const side = Math.random() < 0.5 ? 'left' : 'right';
+  const el = document.createElement('img');
+  el.src = 'img/guy.svg'; el.alt = ''; el.className = `peek ${side}`;
+  document.body.appendChild(el);
+  sfx('hi');
+  setTimeout(() => toast('You said box. He heard you.'), 600);
+  setTimeout(() => { el.remove(); peeking = false; }, 3200);
+}
+
+// Five clicks on the mascot: Justin Box signs your next certificate, live.
+let mascotClicks = [];
+const brand = $('.brand');
+if (brand) brand.addEventListener('click', (e) => {
+  e.preventDefault();
+  const now = Date.now();
+  mascotClicks = mascotClicks.filter((t) => now - t < 2500);
+  mascotClicks.push(now);
+  if (mascotClicks.length >= 5) { mascotClicks = []; justinSigns(); }
+});
+function justinSigns() {
+  store.set('signNext', true);
+  const next = CERT_TIERS.find((t) => !state.certs[t.at]);
+  modal(`
+    <h2>Justin Box is here</h2>
+    <p>He heard you knocking. He has agreed to personally sign your next certificate. He's doing it now.</p>
+    <div class="sigpad"><span class="sig">Justin Box</span><span class="sigline"></span></div>
+    <p class="muted">${next ? `It will be on your Box ${fmt(next.at)} certificate, with a "Personally signed" stamp.` : 'You already hold every certificate. He signed a napkin instead. It says box.'}</p>
+  `);
+  sfx('paper');
+}
+
+// Five clicks on the box counter: Five-Box Mode. Every open counts as five.
+let counterClicks = [];
+const counter = $('.tools .depth');
+if (counter) counter.addEventListener('click', () => {
+  const now = Date.now();
+  counterClicks = counterClicks.filter((t) => now - t < 2500);
+  counterClicks.push(now);
+  if (counterClicks.length < 5) return;
+  counterClicks = [];
+  state.five = !state.five;
+  store.set('five', state.five);
+  updateUI();
+  sfx(state.five ? 'tada' : 'thunk');
+  toast(state.five ? 'Five-Box Mode. Every box counts as five. Do not tell anyone.' : 'Five-Box Mode off. One at a time, like a gentleman.', state.five ? 'rare' : '', 5000);
+});
+
+// Shake the phone hard ten times: she gets dizzy and opens upside down.
+function dizzy() {
+  if (state.busy || !state.el || document.querySelector('.overlay')) return;
+  const box = state.el;
+  box.classList.add('dizzy');
+  toast("You shook her too hard. She's dizzy.", 'scold');
+  setTimeout(() => {
+    box.classList.remove('dizzy');
+    state.current.variant = 'flip';
+    box.style.setProperty('--rot', '180deg');
+    hint('She opened upside down. Your fault.');
+    open();
+  }, 1300);
+}
+
+// Leave her alone for five minutes and she gets lonely.
+const IDLE_MS = (() => { const q = new URL(location.href).searchParams.get('idle'); return q ? Math.max(2, +q) * 1000 : 5 * 60 * 1000; })();
+let idleT = 0;
+function resetIdle() { clearTimeout(idleT); idleT = setTimeout(lonely, IDLE_MS); }
+function lonely() {
+  if (document.visibilityState !== 'visible' || state.busy || !state.el || document.querySelector('.overlay')) { resetIdle(); return; }
+  toast('She got lonely. She opened herself. Slowly.', 'scold', 6000);
+  hint('Nobody was here. So she did it herself.');
+  // Once per idle stretch. The next tap or key starts the clock again.
+  open({ slow: true });
+}
+['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((t) => addEventListener(t, resetIdle, { passive: true }));
 
 // ---------------------------------------------------------------- buttons
 $('#btn-collection').addEventListener('click', openCollection);
@@ -709,6 +1039,15 @@ async function worldwide() {
 (function init() {
   load();
   const q = new URL(location.href).searchParams;
+  // Resume links carry a whole save from another device.
+  if (q.has('resume')) {
+    const r = decodeResume(q.get('resume'));
+    history.replaceState(null, '', location.pathname);
+    if (r && applyResume(r, true)) return;
+    if (!r) setTimeout(() => toast("That resume link isn't a box. Check you copied all of it.", 'scold'), 400);
+  }
+  // Testing hook: ?season=pumpkin|gift|heart|none
+  if (q.has('season')) { const sq = q.get('season'); SEASON = SEASONS[sq] ? sq : ''; }
   if (q.has('depth')) {
     state.depth = Math.min(10000000, Math.max(1, parseInt(q.get('depth'), 10) || 1));
     history.replaceState(null, '', location.pathname);
@@ -727,9 +1066,11 @@ async function worldwide() {
     state.current.factor = forced === 'big' ? 1.08 : PREVIEW;
     history.replaceState(null, '', location.pathname);
   }
+  markDaily(state.current);
   render();
   updateUI();
   hint(state.depth === 1 ? 'Click the box. Go on.' : 'Welcome back. She is still box. She missed you.');
+  resetIdle();
   history.replaceState({ bbg: 'base' }, '');
   worldwide();
   setInterval(worldwide, 60000);

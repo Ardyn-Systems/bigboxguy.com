@@ -58,7 +58,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 .bottom{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:12px;font-size:13px;color:var(--ink-soft);border-top:2px dashed var(--kraft-dark)}
 
 /* ---------- the box ---------- */
-.stage{position:relative;width:min(70vw,380px);aspect-ratio:1/1;container-type:inline-size}
+.stage{position:relative;width:min(70vw,380px);aspect-ratio:1/1;container-type:inline-size;touch-action:none}
 .box{
   position:absolute;inset:0;transform:scale(var(--s,1)) rotate(var(--rot,0deg));
   transform-origin:50% 50%;perspective:1100px;outline:none;user-select:none;
@@ -157,6 +157,49 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 .box.troutbox .label .joke{color:#1d4f6b;font-size:6.5cqw;letter-spacing:1px}
 .box.troutbox .stamp{color:#1d4f6b;border-color:#1d4f6b}
 
+/* Seasonal skins */
+.box.skin-pumpkin .flap{background:linear-gradient(180deg,#f3a04a,#e8792b 55%,#b4501a)}
+.box.skin-pumpkin .flap.b{background:linear-gradient(0deg,#f3a04a,#e8792b 55%,#b4501a)}
+.box.skin-pumpkin .tape{background:rgba(70,110,40,.85)}
+.box.skin-pumpkin .stamp{color:#3a2a1a;border-color:#3a2a1a}
+.box.skin-gift .flap{background:linear-gradient(180deg,#d9443b,#b52a24 55%,#80150f)}
+.box.skin-gift .flap.b{background:linear-gradient(0deg,#d9443b,#b52a24 55%,#80150f)}
+.box.skin-gift .tape{background:linear-gradient(90deg,#f1c232,#ffe08a,#f1c232);width:16%}
+.box.skin-gift .stamp{color:#1f5f2a;border-color:#1f5f2a}
+.box.skin-heart .flap{background:linear-gradient(180deg,#f7c1cd,#ec97ab 55%,#d06b85)}
+.box.skin-heart .flap.b{background:linear-gradient(0deg,#f7c1cd,#ec97ab 55%,#d06b85)}
+.box.skin-heart .stamp{color:#a0183a;border-color:#a0183a}
+/* Daily Box */
+.box.daily .tape{background:linear-gradient(90deg,#e3b341,#ffe08a,#e3b341)}
+.box.daily .label{box-shadow:0 0 0 .6cqw #e3b341,0 2px 5px rgba(0,0,0,.3)}
+.box.daily .stamp{color:#8f6a16;border-color:#8f6a16}
+/* Box 404 */
+.interior .nothing{font-family:var(--marker);color:#8a7355;font-size:7cqw;letter-spacing:1px}
+/* Lonely: she opens slowly */
+.box.slowopen .flap{transition-duration:6s !important;transition-delay:0s !important}
+/* Dizzy */
+.box.dizzy{animation:dizzy 1.2s ease-in-out}
+@keyframes dizzy{0%{transform:scale(var(--s,1)) rotate(0)}30%{transform:scale(var(--s,1)) rotate(25deg)}55%{transform:scale(var(--s,1)) rotate(-20deg)}80%{transform:scale(var(--s,1)) rotate(190deg)}100%{transform:scale(var(--s,1)) rotate(180deg)}}
+/* Big Box Guy peeks in */
+.peek{position:fixed;bottom:18%;width:110px;height:auto;z-index:70;pointer-events:none;animation:peek-l 3.1s ease-in-out forwards}
+.peek.left{left:-120px}
+.peek.right{right:-120px;animation-name:peek-r}
+@keyframes peek-l{0%{transform:translateX(0) rotate(20deg)}20%,75%{transform:translateX(95px) rotate(12deg)}35%,55%{transform:translateX(95px) rotate(2deg)}45%,65%{transform:translateX(95px) rotate(16deg)}100%{transform:translateX(0) rotate(20deg)}}
+@keyframes peek-r{0%{transform:translateX(0) rotate(-20deg)}20%,75%{transform:translateX(-95px) rotate(-12deg)}35%,55%{transform:translateX(-95px) rotate(-2deg)}45%,65%{transform:translateX(-95px) rotate(-16deg)}100%{transform:translateX(0) rotate(-20deg)}}
+/* Justin signs */
+.sigpad{position:relative;height:110px;margin:14px 0;border:2px dashed var(--kraft-dark);border-radius:10px;background:var(--label);display:grid;place-items:center;overflow:hidden}
+.sigpad .sig{font-family:var(--sig);font-size:42px;color:#1d2a6b;white-space:nowrap;clip-path:inset(0 100% 0 0);animation:sign 2.6s .4s steps(40,end) forwards}
+.sigpad .sigline{position:absolute;left:12%;right:12%;bottom:22px;height:2px;background:#2b2117}
+@keyframes sign{to{clip-path:inset(0 0 0 0)}}
+/* Five-Box Mode badge */
+.tools .depth{cursor:default;user-select:none}
+.tools .depth.five::after{content:"×5";font-family:var(--body);font-size:12px;font-weight:700;vertical-align:super;margin-left:4px;color:var(--red)}
+/* Leaderbox tabs + crown */
+.tabs{display:flex;gap:6px;margin:4px 0 8px}
+.tab{font:inherit;font-weight:600;font-size:14px;padding:6px 12px;border-radius:999px;border:2px solid var(--kraft-dark);background:transparent;color:var(--ink);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--kraft-light);color:#2b2117}
+.board li.justin .nm{color:var(--gold);font-weight:700}
+
 /* ---------- drops ---------- */
 .drop.peanut svg{animation:floatoff calc(1.8s / var(--spd)) ease-in forwards}
 .drop.bubble svg{animation:popit calc(1.4s / var(--spd)) ease-out forwards}
@@ -165,6 +208,11 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 .drop.cat svg{animation:cathop calc(2.1s / var(--spd)) cubic-bezier(.4,0,.6,1) forwards}
 .drop.guy svg{animation:guywave calc(2.4s / var(--spd)) ease-in-out forwards}
 .drop.trout svg{animation:troutflop calc(2.6s / var(--spd)) ease-in-out forwards}
+.drop.sock svg{animation:floatoff calc(1.8s / var(--spd)) ease-in forwards}
+.drop.form svg{animation:flutter calc(2s / var(--spd)) ease-in-out forwards}
+.drop.letter svg{animation:flutter calc(2.2s / var(--spd)) ease-in-out forwards}
+.drop.mimic svg{animation:chomp calc(2.2s / var(--spd)) ease-in-out forwards}
+@keyframes chomp{0%{transform:scale(.6);opacity:0}15%{transform:scale(1);opacity:1}25%,45%,65%{transform:scale(1.08,.9)}35%,55%{transform:scale(.95,1.06)}80%{transform:scale(1) rotate(-6deg);opacity:1}100%{transform:translateY(-220%) rotate(-30deg);opacity:0}}
 @keyframes floatoff{0%{transform:translateY(20%) scale(.6);opacity:0}15%{transform:translateY(0) scale(1);opacity:1}70%{transform:translateY(-70%) rotate(20deg);opacity:1}100%{transform:translateY(-260%) rotate(50deg);opacity:0}}
 @keyframes popit{0%{transform:scale(.4);opacity:0}25%{transform:scale(1);opacity:1}60%{transform:scale(1.05)}70%{transform:scale(1.5);opacity:.7}100%{transform:scale(2.2);opacity:0}}
 @keyframes flutter{0%{transform:translateY(-10%) rotate(-6deg);opacity:0}20%{transform:translateY(0) rotate(3deg);opacity:1}50%{transform:translate(8%,-6%) rotate(-4deg)}80%{transform:translate(-6%,4%) rotate(5deg);opacity:1}100%{transform:translate(0,-300%) rotate(25deg);opacity:0}}

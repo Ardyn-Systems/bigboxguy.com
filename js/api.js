@@ -55,10 +55,10 @@ export async function flush(beacon = false) {
   }
 }
 
-export async function submitScore(name, depth) {
+export async function submitScore(name, depth, today = 0, day = '') {
   try {
     const r = await fetch(`${BASE}/score`, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, depth }),
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, depth, today, day }),
     });
     if (!r.ok) throw new Error('bad status');
     const j = await r.json();
