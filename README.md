@@ -63,7 +63,14 @@ without the function; those two features just hide themselves.
   Nobody is credited.
 - **Interaction gags.** Shake the mouse (or your phone) over the box and it
   rattles. Hold the click and it resists. Double-click to skip a box and get
-  scolded. The browser back button re-seals the previous box.
+  scolded. The first press of the browser Back button re-seals the current
+  box (progress is kept); the second press leaves the site.
+- **Speed.** The 1× button in the header cycles 1×, 2×, 3×. Every
+  animation and pause scales with it (`--spd` in CSS, `tick()` in JS). At 2×
+  and 3× a tap during an open queues the next box instead of skipping.
+- **Saving.** Progress is written to `localStorage` the moment a box is
+  opened and again whenever the page is hidden or closed. Only one history
+  entry is ever added, so leaving with Back never costs a box.
 - **Social.** Share button renders an image ("I have loved N boxes. Every
   shape. Every size."). Worldwide counter and the Leaderbox (the leaderboard, Deepest Box).
 - **Touches.** The box counter sits top right in the header, the tab title

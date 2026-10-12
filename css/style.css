@@ -20,6 +20,7 @@
   --shadow:0 22px 50px rgba(0,0,0,.55);
 }
 
+:root{--spd:1}
 *{box-sizing:border-box}
 html{height:100%}
 body{
@@ -64,8 +65,8 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
   -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
 .box.main{cursor:pointer;z-index:1}
-.box.main.zooming{transition:transform .55s cubic-bezier(.2,.8,.25,1)}
-.box.spent{transition:opacity .45s;opacity:0;pointer-events:none;z-index:2}
+.box.main.zooming{transition:transform calc(.55s / var(--spd)) cubic-bezier(.2,.8,.25,1)}
+.box.spent{transition:opacity calc(.45s / var(--spd));opacity:0;pointer-events:none;z-index:2}
 .box.straining{animation:strain .45s ease-in-out infinite}
 .box.rattling{animation:rattle .55s linear}
 .box.mini{pointer-events:none}
@@ -97,7 +98,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 .drop svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 8px 10px rgba(0,0,0,.45))}
 
 .flap{
-  position:absolute;transition:transform .75s cubic-bezier(.45,0,.2,1);backface-visibility:visible;
+  position:absolute;transition:transform calc(.75s / var(--spd)) cubic-bezier(.45,0,.2,1);backface-visibility:visible;
   background:linear-gradient(180deg,var(--kraft-light),var(--kraft) 55%,var(--kraft-dark));
 }
 .flap::after{content:"";position:absolute;inset:0;pointer-events:none;
@@ -105,9 +106,9 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 .flap.t{left:0;right:0;top:0;height:50%;transform-origin:50% 0;z-index:4;border-radius:8px 8px 0 0}
 .flap.b{left:0;right:0;bottom:0;height:50%;transform-origin:50% 100%;z-index:4;border-radius:0 0 8px 8px;
   background:linear-gradient(0deg,var(--kraft-light),var(--kraft) 55%,var(--kraft-dark))}
-.flap.l{top:0;bottom:0;left:0;width:50%;transform-origin:0 50%;z-index:3;transition-delay:.22s;
+.flap.l{top:0;bottom:0;left:0;width:50%;transform-origin:0 50%;z-index:3;transition-delay:calc(.22s / var(--spd));
   background:linear-gradient(90deg,var(--kraft-light),var(--kraft) 55%,var(--kraft-dark))}
-.flap.r{top:0;bottom:0;right:0;width:50%;transform-origin:100% 50%;z-index:3;transition-delay:.22s;
+.flap.r{top:0;bottom:0;right:0;width:50%;transform-origin:100% 50%;z-index:3;transition-delay:calc(.22s / var(--spd));
   background:linear-gradient(270deg,var(--kraft-light),var(--kraft) 55%,var(--kraft-dark))}
 .box.open > .flap.t{transform:rotateX(163deg)}
 .box.open > .flap.b{transform:rotateX(-163deg)}
@@ -157,13 +158,13 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 .box.troutbox .stamp{color:#1d4f6b;border-color:#1d4f6b}
 
 /* ---------- drops ---------- */
-.drop.peanut svg{animation:floatoff 1.8s ease-in forwards}
-.drop.bubble svg{animation:popit 1.4s ease-out forwards}
-.drop.receipt svg{animation:flutter 2s ease-in-out forwards}
-.drop.manual svg{animation:flutter 2s ease-in-out forwards}
-.drop.cat svg{animation:cathop 2.1s cubic-bezier(.4,0,.6,1) forwards}
-.drop.guy svg{animation:guywave 2.4s ease-in-out forwards}
-.drop.trout svg{animation:troutflop 2.6s ease-in-out forwards}
+.drop.peanut svg{animation:floatoff calc(1.8s / var(--spd)) ease-in forwards}
+.drop.bubble svg{animation:popit calc(1.4s / var(--spd)) ease-out forwards}
+.drop.receipt svg{animation:flutter calc(2s / var(--spd)) ease-in-out forwards}
+.drop.manual svg{animation:flutter calc(2s / var(--spd)) ease-in-out forwards}
+.drop.cat svg{animation:cathop calc(2.1s / var(--spd)) cubic-bezier(.4,0,.6,1) forwards}
+.drop.guy svg{animation:guywave calc(2.4s / var(--spd)) ease-in-out forwards}
+.drop.trout svg{animation:troutflop calc(2.6s / var(--spd)) ease-in-out forwards}
 @keyframes floatoff{0%{transform:translateY(20%) scale(.6);opacity:0}15%{transform:translateY(0) scale(1);opacity:1}70%{transform:translateY(-70%) rotate(20deg);opacity:1}100%{transform:translateY(-260%) rotate(50deg);opacity:0}}
 @keyframes popit{0%{transform:scale(.4);opacity:0}25%{transform:scale(1);opacity:1}60%{transform:scale(1.05)}70%{transform:scale(1.5);opacity:.7}100%{transform:scale(2.2);opacity:0}}
 @keyframes flutter{0%{transform:translateY(-10%) rotate(-6deg);opacity:0}20%{transform:translateY(0) rotate(3deg);opacity:1}50%{transform:translate(8%,-6%) rotate(-4deg)}80%{transform:translate(-6%,4%) rotate(5deg);opacity:1}100%{transform:translate(0,-300%) rotate(25deg);opacity:0}}

@@ -7,6 +7,9 @@ import * as api from './api.js?v=20261010b';
 
 const $ = (s, r = document) => r.querySelector(s);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// Speed: 1x, 2x, 3x. Every animation and pause divides by it.
+const SPEEDS = [1, 2, 3];
+const tick = (ms) => wait(ms / state.speed);
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const fmt = (n) => Number(n).toLocaleString('en-US');
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -108,7 +111,7 @@ const MILESTONES = {
 // ---------------------------------------------------------------- state
 const state = {
   depth: 1, opened: 0, coll: {}, fresh: [], lastDrop: 0, lastTrout: 0, name: '', certs: {}, seen: {},
-  s: 1, busy: false, lastClick: 0, skip: false, el: null, current: null, next: null,
+  s: 1, busy: false, lastClick: 0, skip: false, el: null, current: null, next: null, speed: 1, queued: false,
 };
 const stage = $('#stage');
 
@@ -223,10 +226,12 @@ async function open() {
   peanuts(box);
   hint('');
   state.opened++;
-  history.pushState({ depth: state.depth + 1 }, '');
-  await wait(850);
+  // Save now, not after the animation, so closing the tab mid-open keeps the box.
+  store.set('depth', state.depth + 1); store.set('opened', state.opened);
+  armGuard();
+  await tick(850);
   if (cur.drop) await showDrop(box, cur.drop);
-  else await wait(320);
+  else await tick(320);
   let n = 1;
   if (state.skip) {
     n = 2; state.opened++;
@@ -245,7 +250,7 @@ function advance(n) {
   persist();
   old.classList.remove('main');
   old.classList.add('spent');
-  setTimeout(() => old.remove(), 500);
+  setTimeout(() => old.remove(), 500 / state.speed);
   render();
   {
     // A timer, not requestAnimationFrame: rAF pauses in background tabs and
@@ -256,13 +261,18 @@ function advance(n) {
       state.s = 1;
       el.style.setProperty('--s', 1);
       if (fromBig) { sfx('whoosh'); hint('That one barely fit.'); }
-      setTimeout(() => el.classList.remove('zooming'), 700);
+      setTimeout(() => el.classList.remove('zooming'), 700 / state.speed);
     }, 30);
   }
   state.busy = false;
   updateUI();
   try { api.queueOpen(n); } catch (e) { console.warn('queueOpen', e); }
   try { milestones(); } catch (e) { console.warn('milestones', e); }
+  // At 2x and 3x a tap during an open queues the next one instead of skipping.
+  if (state.queued) {
+    state.queued = false;
+    setTimeout(() => { if (!state.busy && !document.querySelector('.overlay')) click(); }, 60);
+  }
 }
 
 async function showDrop(box, drop) {
@@ -280,7 +290,7 @@ async function showDrop(box, drop) {
   updateBadge();
   toast(`${TIER_LABEL[drop.tier]}: ${drop.name}. ${drop.desc}${first ? ' Added to your collection.' : ''}`, 'rare', drop.tier === 'legendary' ? 7000 : 4500);
   if (drop.id === 'trout') setTimeout(() => toast('That was the Trout Box. There is nothing above the Trout Box.', 'rare', 7000), 900);
-  await wait(drop.ms);
+  await tick(drop.ms);
   slot.hidden = true;
 }
 
@@ -300,7 +310,7 @@ function peanuts(box) {
     p.style.setProperty('--up', Math.sin(ang) * dist * 0.9 + 'px');
     p.style.setProperty('--dy', 220 + Math.random() * 200 + 'px');
     p.style.setProperty('--r', (Math.random() * 720 - 360) + 'deg');
-    p.style.setProperty('--dur', 1.1 + Math.random() * 0.6 + 's');
+    p.style.setProperty('--dur', (1.1 + Math.random() * 0.6) / state.speed + 's');
     host.appendChild(p);
     setTimeout(() => p.remove(), 1900);
   }
@@ -538,10 +548,12 @@ function openMenu() {
       <li>Shake your mouse over the box (or shake your phone) to hear what's inside. Gently. She's sensitive.</li>
       <li>Hold the click down. She has opinions about that. Hold long enough and she gives in.</li>
       <li>Double-click to skip a box. Please don't. Nobody likes a guy who rushes.</li>
-      <li>The browser back button goes back a box. She remembers. She always remembers.</li>
+      <li>The 1× button speeds things up to 2× or 3×. At those speeds, tap ahead and the next box queues.</li>
+      <li>Press back and she re-seals herself. Your place is kept. Press back again to leave.</li>
       <li>Every box is a different shape and size. Love them all. Some are taped shut, some are upside down, some are too big. Lucky you.</li>
       <li>Some boxes contain things. Collect them all. One of them is the Trout Box. After 1,000 boxes without it, the next one is the Trout Box. You deserve it.</li>
     </ul>
+    <p class="muted">Your progress saves automatically on this device and browser. A private or incognito window forgets it when closed.</p>
     <h3>Start over</h3>
     <div class="row"><button class="btn" id="menu-reset">Return all boxes to sender</button><span class="muted">Resets your depth, collection, and certificates on this device.</span></div>
     <p class="muted" style="margin-top:18px">Made by a guy who loves box. <a href="about.html">About the Big Box Guy</a> · <a href="services.html">Services</a> · <a href="pricing.html">Pricing</a></p>
@@ -566,7 +578,8 @@ stage.addEventListener('pointerdown', (e) => {
   unlock(); requestMotion();
   const now = performance.now();
   if (state.busy) {
-    if (now - state.lastClick < 520) state.skip = true;
+    if (state.speed > 1) state.queued = true;
+    else if (now - state.lastClick < 520) state.skip = true;
     state.lastClick = now;
     return;
   }
@@ -587,7 +600,10 @@ stage.addEventListener('pointerup', (e) => {
 ['pointercancel', 'pointerleave'].forEach((t) => stage.addEventListener(t, () => { clearHold(); if (straining) endStrain(); downAt = 0; }));
 stage.addEventListener('keydown', (e) => {
   if (!e.target.closest('.box.main')) return;
-  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); unlock(); if (!state.busy) click(); }
+  if (e.key === ' ' || e.key === 'Enter') {
+    e.preventDefault(); unlock();
+    if (!state.busy) click(); else if (state.speed > 1) state.queued = true;
+  }
 });
 stage.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -632,21 +648,31 @@ function requestMotion() {
   }
 }
 
-// The back button. The box notices.
-addEventListener('popstate', (e) => {
-  const d = e.state && e.state.depth;
-  if (!d || d >= state.depth || state.busy) { history.replaceState({ depth: state.depth }, ''); return; }
-  state.depth = d;
-  state.s = 1;
-  state.current = makeBox(d);
-  state.next = makeBox(d + 1);
+// The back button. Opening a box adds one history entry (after a real tap, so
+// browsers honour it). The first Back re-seals the current box and keeps your
+// place; the next Back leaves the site. Progress is never walked backwards.
+let guardArmed = false;
+function armGuard() {
+  if (guardArmed) return;
+  guardArmed = true;
+  try { history.pushState({ bbg: 'guard' }, ''); } catch (e) {}
+}
+addEventListener('popstate', () => {
+  if (!guardArmed) return;
+  guardArmed = false;
   persist();
-  if (state.el) state.el.remove();
+  if (state.busy || !state.el) return;
+  state.current = makeBox(state.depth);
+  state.next = makeBox(state.depth + 1);
+  state.el.remove();
   render({ resealed: true });
   sfx('thunk');
-  toast('She noticed you came back. She has re-sealed. Play it cool. Act like you have been in box before.', 'scold');
+  toast('Leaving already? She re-sealed herself. Your spot is saved. Press back again to really go.', 'scold');
   updateUI();
 });
+// Belt and braces: save whenever the page is hidden or closed.
+addEventListener('pagehide', () => persist());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') persist(); });
 
 // ---------------------------------------------------------------- buttons
 $('#btn-collection').addEventListener('click', openCollection);
@@ -656,6 +682,20 @@ $('#btn-menu').addEventListener('click', openMenu);
 const soundBtn = $('#btn-sound');
 function syncSound() { soundBtn.setAttribute('aria-pressed', String(!isMuted())); }
 soundBtn.addEventListener('click', () => { setMuted(!isMuted()); store.set('muted', isMuted()); syncSound(); unlock(); if (!isMuted()) sfx('pop'); });
+const speedBtn = $('#btn-speed');
+const SPEED_TOAST = {
+  1: 'Normal speed. Savor every box.',
+  2: 'Faster. She likes eager. Tap ahead and the next box queues up.',
+  3: 'Maximum speed. Nobody likes a guy who rushes. But okay.',
+};
+function syncSpeed() {
+  document.documentElement.style.setProperty('--spd', state.speed);
+  if (speedBtn) { speedBtn.textContent = `${state.speed}×`; speedBtn.setAttribute('aria-label', `Speed ${state.speed}x`); }
+}
+if (speedBtn) speedBtn.addEventListener('click', () => {
+  state.speed = SPEEDS[(SPEEDS.indexOf(state.speed) + 1) % SPEEDS.length];
+  store.set('speed', state.speed); syncSpeed(); toast(SPEED_TOAST[state.speed]);
+});
 
 // ---------------------------------------------------------------- worldwide
 async function worldwide() {
@@ -675,6 +715,7 @@ async function worldwide() {
     persist();
   }
   setMuted(!!store.get('muted', false)); syncSound();
+  state.speed = SPEEDS.includes(store.get('speed', 1)) ? store.get('speed', 1) : 1; syncSpeed();
   state.s = 1;
   state.current = makeBox(state.depth);
   state.next = makeBox(state.depth + 1);
@@ -689,7 +730,7 @@ async function worldwide() {
   render();
   updateUI();
   hint(state.depth === 1 ? 'Click the box. Go on.' : 'Welcome back. She is still box. She missed you.');
-  history.replaceState({ depth: state.depth }, '');
+  history.replaceState({ bbg: 'base' }, '');
   worldwide();
   setInterval(worldwide, 60000);
   if (q.has('depth')) milestones();
