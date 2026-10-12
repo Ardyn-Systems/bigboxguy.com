@@ -1,9 +1,9 @@
 // bigboxguy.com — the box engine. A box opens. There is a box inside. Repeat.
-import { sfx, strain, setMuted, isMuted, unlock } from './audio.js?v=20261012a';
-import { DROPS, TIER_LABEL, rollDrop, dropSVG, byId } from './drops.js?v=20261012a';
-import { renderCertificate, CERT_TIERS, tierAt } from './cert.js?v=20261012a';
-import { renderShare, shareText } from './share.js?v=20261012a';
-import * as api from './api.js?v=20261012a';
+import { sfx, strain, setMuted, isMuted, unlock } from './audio.js?v=20261012b';
+import { DROPS, TIER_LABEL, rollDrop, dropSVG, byId } from './drops.js?v=20261012b';
+import { renderCertificate, CERT_TIERS, tierAt } from './cert.js?v=20261012b';
+import { renderShare, shareText } from './share.js?v=20261012b';
+import * as api from './api.js?v=20261012b';
 
 const $ = (s, r = document) => r.querySelector(s);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -599,8 +599,11 @@ function todayCount() { const t = store.get('today', null); return t && t.day ==
 function bumpToday(n) {
   store.set('today', { day: utcDay(), count: todayCount() + n });
   // Players who have put a name on the Leaderbox get updated quietly every 25 boxes.
+  if (state.opened % 25 >= n) return;
+  const acct = account();
+  if (acct) { api.submitScore(acct.name, state.depth, todayCount(), utcDay(), acct.key); syncUp(); return; }
   const name = store.get('boardName', '');
-  if (name && state.opened % 25 < n) api.submitScore(name, state.depth, todayCount(), utcDay()).catch?.(() => {});
+  if (name) api.submitScore(name, state.depth, todayCount(), utcDay());
 }
 const isJustin = (n) => String(n).trim().toLowerCase() === 'justin box';
 const crown = (n) => (isJustin(n) ? '<span class="crown" title="There can be only one.">👑</span> ' : '');
@@ -629,7 +632,7 @@ async function openBoard() {
     if (!last) { ol.innerHTML = '<li><span class="rank"></span><span class="nm muted">The Leaderbox is in a different box right now. (No connection to the box server.)</span></li>'; return; }
     const rows = tab === 'deep' ? (last.board || []) : (last.daily || []);
     if (!rows.length) { ol.innerHTML = `<li><span class="rank"></span><span class="nm muted">${tab === 'deep' ? 'Nobody yet. Be the first guy. Someone has to.' : 'Nobody has claimed today yet. It could be you. It should be you.'}</span></li>`; return; }
-    ol.innerHTML = rows.map((b, i) => `<li class="${me && b.name.toLowerCase() === me.toLowerCase() ? 'me' : ''}${isJustin(b.name) ? ' justin' : ''}"><span class="rank">${i + 1}</span><span class="nm">${crown(b.name)}${esc(b.name)}</span><span class="dp">${tab === 'deep' ? `Box ${fmt(b.depth)}` : `${fmt(b.count)} today`}</span></li>`).join('');
+    ol.innerHTML = rows.map((b, i) => `<li class="${me && b.name.toLowerCase() === me.toLowerCase() ? 'me' : ''}${isJustin(b.name) ? ' justin' : ''}"><span class="rank">${i + 1}</span><span class="nm">${crown(b.name)}${esc(b.name)}${b.claimed ? ' <span class="lock" title="Claimed with a password">🔒</span>' : ''}</span><span class="dp">${tab === 'deep' ? `Box ${fmt(b.depth)}` : `${fmt(b.count)} today`}</span></li>`).join('');
   };
   ov.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
     tab = t.dataset.tab;
@@ -650,9 +653,11 @@ async function openBoard() {
     state.name = name; store.set('name', name); store.set('boardName', name);
     const btn = $('button[type=submit]', ov);
     btn.disabled = true;
-    const res = await api.submitScore(name, state.depth, todayCount(), utcDay());
+    const acct = account();
+    const res = await api.submitScore(name, state.depth, todayCount(), utcDay(), acct && acct.name.toLowerCase() === name.toLowerCase() ? acct.key : undefined);
     btn.disabled = false;
     if (!res) { $('#board-note', ov).textContent = 'Could not reach the box server. Your box remains deep in spirit.'; return; }
+    if (res.error === 'claimed') { $('#board-note', ov).textContent = `${name} is claimed with a password. If it's you, sign in from the menu (☰) first.`; return; }
     draw(res, name);
     $('#board-note', ov).textContent = res.rank ? `You are #${res.rank} deepest${res.dailyRank ? ` and #${res.dailyRank} today` : ''}. You went deep. Everyone can see.` : 'Submitted. Deeper boxes exist. Keep going.';
     if (isJustin(name)) toast('There can be only one. 👑', 'rare', 5000);
@@ -700,8 +705,10 @@ function openMenu() {
       <li>Some boxes contain things. Collect them all. One of them is the Trout Box. After 1,000 boxes without it, the next one is the Trout Box. You deserve it.</li>
     </ul>
     <p class="muted">Your progress saves automatically on this device and browser. A private or incognito window forgets it when closed.</p>
+    <h3>Save your boxes</h3>
+    <div id="acct-box">${acctPanel()}</div>
     <h3>Take your boxes with you</h3>
-    <p class="muted">Open this link on another phone or browser to pick up exactly where you left off: depth, collection, certificates and all.</p>
+    <p class="muted">Open this link on another phone or browser to pick up where you left off: depth, collection, certificates and all. It only ever adds: a link can never move anyone backwards, so it's safe to keep.</p>
     <div class="row"><input type="text" id="resume-out" readonly value="${esc(resumeLink())}" aria-label="Your resume link"><button class="btn" id="resume-copy">Copy link</button></div>
     <div class="row"><input type="text" id="resume-in" placeholder="Paste a resume link or code" aria-label="Resume link or code"><button class="btn" id="resume-load">Load</button></div>
     <h3>Start over</h3>
@@ -710,6 +717,7 @@ function openMenu() {
   `);
   $('#menu-name', ov).addEventListener('change', (e) => { state.name = e.target.value.trim(); store.set('name', state.name); });
   ov.querySelectorAll('[data-cert]').forEach((b) => b.addEventListener('click', () => { ov.close(); openCertificate(Number(b.dataset.cert), false); }));
+  wireAcct(ov);
   $('#resume-copy', ov).addEventListener('click', async () => {
     const inp = $('#resume-out', ov);
     try { await navigator.clipboard.writeText(inp.value); toast('Copied. Your boxes are portable now.'); }
@@ -720,7 +728,7 @@ function openMenu() {
     const m = raw.match(/[?&]resume=([A-Za-z0-9_-]+)/);
     const data = decodeResume(m ? m[1] : raw);
     if (!data) { toast("That code isn't a box. Check you copied all of it.", 'scold'); return; }
-    applyResume(data, true);
+    applyResume(data);
   });
   $('#menu-reset', ov).addEventListener('click', () => {
     if (!confirm('Return all boxes to sender? This resets your depth, collection, and certificates.')) return;
@@ -853,7 +861,7 @@ addEventListener('popstate', () => {
   updateUI();
 });
 // Belt and braces: save whenever the page is hidden or closed.
-addEventListener('pagehide', () => persist());
+addEventListener('pagehide', () => { persist(); const a = account(); if (a) api.syncBeacon(a.name, a.key, snapshot()); });
 // Another tab moved on: catch up. Another tab reset or loaded a resume link: reload.
 addEventListener('storage', (e) => {
   if (frozen || !e.key || !e.key.startsWith('bbg.')) return;
@@ -876,7 +884,7 @@ function unb64u(str) { return decodeURIComponent(escape(atob(str.replace(/-/g, '
 function resumeLink() {
   const data = { v: 1, d: state.depth, o: state.opened, c: state.coll, ce: state.certs, lt: state.lastTrout, ld: state.lastDrop,
     n: state.name, dd: store.get('dailyDay', ''), st: store.get('streak', 0) };
-  return `${location.origin}/?resume=${b64u(JSON.stringify(data))}`;
+  return `https://${HOME}/?resume=${b64u(JSON.stringify(data))}`;
 }
 const int = (v, lo, hi) => { const n = Math.floor(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };
 function decodeResume(code) {
@@ -894,16 +902,44 @@ function decodeResume(code) {
       name: String(d.n || '').slice(0, 28), dailyDay: /^\d{4}-\d{2}-\d{2}$/.test(d.dd || '') ? d.dd : '', streak: int(d.st, 0, 1e5) };
   } catch { return null; }
 }
-function applyResume(r, ask) {
-  if (ask && state.depth > 1 && r.depth !== state.depth &&
-      !confirm(`Load Box ${fmt(r.depth)} from that link? It replaces Box ${fmt(state.depth)} on this device.`)) return false;
+// A resume link MERGES into this device's save and can only ever move it
+// forward: the higher box, the higher counts, every item and certificate from
+// both. Opening someone else's link, or an old link of your own, can never cost
+// you progress. (It used to replace the save after an easy-to-miss "OK".)
+function applyResume(r) {
+  const num = (k) => parseInt(store.get(k, 0), 10) || 0;
+  const coll = { ...(store.get('coll', {}) || {}) };
+  for (const k of Object.keys(r.coll)) coll[k] = Math.max(parseInt(coll[k], 10) || 0, r.coll[k]);
+  const certs = { ...r.certs, ...(store.get('certs', {}) || {}) };
+  const before = Math.max(num('depth'), state.depth);
+  const depth = Math.max(before, r.depth);
   frozen = true;
   bumpEpoch();
-  store.set('depth', r.depth); store.set('opened', r.opened); store.set('coll', r.coll); store.set('certs', r.certs);
-  store.set('lastTrout', r.lastTrout); store.set('lastDrop', r.lastDrop); store.set('name', r.name);
-  if (r.dailyDay) store.set('dailyDay', r.dailyDay);
-  store.set('streak', r.streak);
-  location.href = location.pathname;
+  store.set('depth', depth);
+  store.set('opened', Math.max(num('opened'), state.opened, r.opened));
+  store.set('coll', coll); store.set('certs', certs);
+  store.set('lastTrout', Math.max(num('lastTrout'), r.lastTrout));
+  store.set('lastDrop', Math.max(num('lastDrop'), r.lastDrop));
+  if (!store.get('name', '') && r.name) store.set('name', r.name);
+  const dd = store.get('dailyDay', '') || '';
+  if (r.dailyDay && r.dailyDay > dd) { store.set('dailyDay', r.dailyDay); store.set('streak', r.streak); }
+  else if (r.dailyDay === dd) store.set('streak', Math.max(num('streak'), r.streak));
+  try { sessionStorage.setItem('bbg.resumed', JSON.stringify({ from: before, to: depth })); } catch {}
+  location.href = location.origin + location.pathname;
+  return true;
+}
+// One home for every save. www.bigboxguy.com and bigboxguy.pages.dev each kept
+// their own separate save (browsers store per address), so a player could
+// open the "wrong" one and think progress was gone. Those addresses now carry
+// their save over to bigboxguy.com, where it merges in.
+const HOME = 'bigboxguy.com';
+function sendHome() {
+  const h = location.hostname;
+  if (h !== 'www.bigboxguy.com' && h !== 'bigboxguy.pages.dev') return false;
+  load();
+  const target = state.depth > 1 ? new URL(resumeLink()) : new URL('https://' + HOME + '/');
+  target.protocol = 'https:'; target.host = HOME;
+  location.replace(target.href);
   return true;
 }
 
@@ -1041,6 +1077,113 @@ function lonely() {
 }
 ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach((t) => addEventListener(t, resetIdle, { passive: true }));
 
+// ---------------------------------------------------------------- accounts
+// Claim your Leaderbox name with a password. No email. Your save goes to the
+// server and follows you to any device you sign in on. Saves only move forward.
+const account = () => { const a = store.get('acct', null); return a && a.name && a.key ? a : null; };
+async function deriveKey(name, password) {
+  const te = new TextEncoder();
+  const base = await crypto.subtle.importKey('raw', te.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: te.encode('bigboxguy.com|' + name.trim().toLowerCase()), iterations: 150000 }, base, 256);
+  return [...new Uint8Array(bits)].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+function snapshot() {
+  return { depth: state.depth, opened: state.opened, coll: state.coll, certs: state.certs, lastTrout: state.lastTrout,
+    lastDrop: state.lastDrop, dailyDay: store.get('dailyDay', '') || '', streak: store.get('streak', 0) || 0 };
+}
+// Fold a save from the server into this device. Forward only, no reload.
+function mergeIn(s) {
+  if (!s) return;
+  const before = state.depth;
+  const num = (k) => parseInt(store.get(k, 0), 10) || 0;
+  store.set('depth', Math.max(num('depth'), s.depth || 0));
+  store.set('opened', Math.max(num('opened'), s.opened || 0));
+  store.set('lastTrout', Math.max(num('lastTrout'), s.lastTrout || 0));
+  store.set('lastDrop', Math.max(num('lastDrop'), s.lastDrop || 0));
+  const coll = { ...(store.get('coll', {}) || {}) };
+  for (const k of Object.keys(s.coll || {})) coll[k] = Math.max(parseInt(coll[k], 10) || 0, s.coll[k]);
+  store.set('coll', coll);
+  store.set('certs', { ...(s.certs || {}), ...(store.get('certs', {}) || {}) });
+  const dd = store.get('dailyDay', '') || '';
+  if (s.dailyDay && s.dailyDay > dd) { store.set('dailyDay', s.dailyDay); store.set('streak', s.streak || 0); }
+  adoptStored();
+  if (state.depth > before && !state.busy && state.el) {
+    state.current = makeBox(state.depth); state.next = makeBox(state.depth + 1);
+    markDaily(state.current);
+    state.el.remove(); render(); updateUI();
+  }
+  return state.depth > before;
+}
+async function syncUp() {
+  const a = account();
+  if (!a) return null;
+  const res = await api.sync(a.name, a.key, snapshot());
+  if (res.ok) { mergeIn(res.save); store.set('acctSynced', Date.now()); }
+  else if (res.error === 'wrong' || res.error === 'unknown') { store.set('acct', null); toast('You were signed out of your saved boxes. Sign in again from the menu.', 'scold', 6000); }
+  return res;
+}
+function acctPanel() {
+  const a = account();
+  if (a) {
+    const t = store.get('acctSynced', 0);
+    return `<p>Saved as <b>${esc(a.name)}</b> 🔒. Your boxes back up as you play and follow you to any phone or browser you sign in on.</p>
+      <p class="muted">${t ? `Last saved ${new Date(t).toLocaleString()}.` : 'Not saved yet on this device.'}</p>
+      <div class="row"><button class="btn" id="acct-sync">Save now</button><button class="btn" id="acct-out">Sign out on this device</button></div>`;
+  }
+  const nm = esc(store.get('boardName', '') || state.name || '');
+  return `<p class="muted">Pick a name and a password. That's it, no email. Your boxes save to the box server and come back whenever you sign in, on any device. Use your Leaderbox name to claim it so nobody else can post as you.</p>
+    <form id="acct-form" class="acct" autocomplete="on">
+      <input type="text" name="username" id="acct-name" maxlength="20" placeholder="Leaderbox name" value="${nm}" autocomplete="username" required>
+      <input type="password" name="password" id="acct-pass" minlength="6" maxlength="128" placeholder="Password (6+ characters)" autocomplete="current-password" required>
+      <div class="row"><button class="btn primary" type="submit" data-act="claim">Save my boxes</button><button class="btn" type="submit" data-act="login">I already saved. Load my boxes</button></div>
+      <p class="muted">No email means no password reset. Pick one you'll remember.</p>
+      <p class="muted" id="acct-msg" aria-live="polite"></p>
+    </form>`;
+}
+function wireAcct(ov) {
+  const box = $('#acct-box', ov);
+  const rewire = () => { box.innerHTML = acctPanel(); wireAcct(ov); };
+  const out = $('#acct-out', box);
+  if (out) out.addEventListener('click', () => { store.set('acct', null); toast('Signed out on this device. Your boxes stay here, and stay saved.'); rewire(); });
+  const syncBtn = $('#acct-sync', box);
+  if (syncBtn) syncBtn.addEventListener('click', async () => {
+    syncBtn.disabled = true;
+    const r = await syncUp();
+    syncBtn.disabled = false;
+    toast(r && r.ok ? `Saved. Box ${fmt(r.save.depth)} is safe on the box server.` : (r && r.message) || "Couldn't save right now.", r && r.ok ? 'rare' : 'scold');
+    rewire();
+  });
+  const form = $('#acct-form', box);
+  if (!form) return;
+  let act = 'claim';
+  form.querySelectorAll('button[data-act]').forEach((b) => b.addEventListener('click', () => { act = b.dataset.act; }));
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = $('#acct-msg', form);
+    const name = $('#acct-name', form).value.trim().slice(0, 20);
+    const pass = $('#acct-pass', form).value;
+    if (!name || pass.length < 6) { msg.textContent = 'Name, and a password of at least 6 characters.'; return; }
+    form.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    msg.textContent = act === 'claim' ? 'Saving your boxes…' : 'Finding your boxes…';
+    const key = await deriveKey(name, pass);
+    const res = act === 'claim' ? await api.claim(name, key, snapshot()) : await api.login(name, key);
+    form.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+    if (!res.ok) { msg.textContent = res.message || 'That did not work. Try again.'; return; }
+    store.set('acct', { name: res.name, key });
+    store.set('boardName', res.name); store.set('name', res.name); state.name = res.name;
+    if (act === 'login') {
+      const raised = mergeIn(res.save);
+      await syncUp();
+      toast(raised ? `Welcome back, ${res.name}. Your boxes are here: Box ${fmt(state.depth)}.` : `Signed in as ${res.name}. You're at Box ${fmt(state.depth)}.`, 'rare', 6000);
+    } else {
+      store.set('acctSynced', Date.now());
+      toast(`Saved. ${res.name} is yours now 🔒. Sign in with it on any device to get your boxes back.`, 'rare', 6000);
+    }
+    rewire();
+  });
+}
+
 // ---------------------------------------------------------------- buttons
 $('#btn-collection').addEventListener('click', openCollection);
 $('#btn-board').addEventListener('click', openBoard);
@@ -1074,15 +1217,23 @@ async function worldwide() {
 
 // ---------------------------------------------------------------- go
 (function init() {
+  if (sendHome()) return;
   load();
   const q = new URL(location.href).searchParams;
   // Resume links carry a whole save from another device.
   if (q.has('resume')) {
     const r = decodeResume(q.get('resume'));
     history.replaceState(null, '', location.pathname);
-    if (r && applyResume(r, true)) return;
+    if (r && applyResume(r)) return;
     if (!r) setTimeout(() => toast("That resume link isn't a box. Check you copied all of it.", 'scold'), 400);
   }
+  try {
+    const done = JSON.parse(sessionStorage.getItem('bbg.resumed') || 'null');
+    if (done) {
+      sessionStorage.removeItem('bbg.resumed');
+      setTimeout(() => toast(done.to > done.from ? `Welcome back. Your boxes are here: Box ${fmt(done.to)}.` : `Merged. You were already further along, so you stay at Box ${fmt(done.to)}.`, 'rare', 6000), 500);
+    }
+  } catch {}
   // Testing hook: ?season=pumpkin|gift|heart|none
   if (q.has('season')) { const sq = q.get('season'); SEASON = SEASONS[sq] ? sq : ''; }
   if (q.has('depth')) {
@@ -1113,4 +1264,6 @@ async function worldwide() {
   worldwide();
   setInterval(worldwide, 60000);
   if (q.has('depth')) milestones();
+  // Signed in? Pull anything newer from the server, then push this device up.
+  if (account()) syncUp();
 })();

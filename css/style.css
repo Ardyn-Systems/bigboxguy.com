@@ -199,6 +199,9 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 .tab{font:inherit;font-weight:600;font-size:14px;padding:6px 12px;border-radius:999px;border:2px solid var(--kraft-dark);background:transparent;color:var(--ink);cursor:pointer}
 .tab[aria-selected="true"]{background:var(--kraft-light);color:#2b2117}
 .board li.justin .nm{color:var(--gold);font-weight:700}
+.board .lock{font-size:11px;opacity:.7}
+form.acct{display:flex;flex-direction:column;gap:8px}
+form.acct input{flex:none;width:100%}
 
 /* ---------- drops ---------- */
 .drop.peanut svg{animation:floatoff calc(1.8s / var(--spd)) ease-in forwards}
@@ -248,7 +251,7 @@ main{flex:1;display:flex;flex-direction:column;align-items:center;justify-conten
 .modal p{line-height:1.5}
 .close{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;padding:0;font-size:18px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
-input[type=text]{font:inherit;padding:8px 10px;border:2px solid var(--kraft-dark);border-radius:8px;background:var(--label);color:#1f1a14;min-width:0;flex:1}
+input[type=text],input[type=password]{font:inherit;padding:8px 10px;border:2px solid var(--kraft-dark);border-radius:8px;background:var(--label);color:#1f1a14;min-width:0;flex:1}
 .btn{font-weight:600;background:var(--kraft-light);border:2px solid var(--kraft-dark);color:#2b2117;border-radius:8px;padding:9px 14px;cursor:pointer}
 .btn:hover{background:var(--kraft)}
 .btn.primary{background:var(--red);border-color:#8f1f1a;color:#fff}

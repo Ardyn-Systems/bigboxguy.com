@@ -75,6 +75,15 @@ without the function; those two features just hide themselves.
 - **Seasonal boxes.** About a third of boxes wear the season: pumpkin in
   October, gift wrap December 1–26, hearts February 7–14. Force one with
   `?season=pumpkin|gift|heart|none`.
+- **Saved boxes (accounts).** In the menu (☰), a player claims their Leaderbox
+  name with a password, no email. Their save goes to the box server, syncs
+  every 25 boxes and when they leave, and comes back when they sign in on any
+  device. A name already on the Leaderbox can only be claimed from a save at
+  least that deep, and a claimed name only accepts scores from someone signed
+  in as it (🔒 on the board). The browser stretches the password with PBKDF2
+  (150k rounds, name as salt); the server keeps SHA-256(random salt + that).
+  Saves merge forward only. 8 wrong passwords lock a name for 15 minutes.
+  There is no password reset. D1 tables `saves` and `auth_fail`.
 - **Resume link.** The menu (☰) has a link that carries depth, collection,
   certificates and streak to another phone or browser (`?resume=…`). Loading
   one asks before replacing existing progress.
